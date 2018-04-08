@@ -44,39 +44,184 @@ static const char *_timing_mnemonics[] __unused = {
 static char *debug_print_pattern(uint32_t) __unused;
 #endif /* DEBUG */
 
+/* Table representing number of VRAM accesses required for pattern name
+ * data */
+static const int8_t _timing_count_pnd[2][3] = {
+        /* PND 1-word */
+        {
+                1,      /* No reduction */
+                2,      /* 1/2 reduction */
+                4       /* 1/4 reduction */
+        },
+        /* PND 2-word */
+        {
+                1,      /* No reduction */
+                2,      /* 1/2 reduction */
+                4       /* 1/4 reduction */
+        }
+};
+
+/* Table representing number of VRAM accesses required for character
+ * pattern data */
+static const int8_t _timing_count_cpd[5][3] = {
+        /* Character color count: 16 (palette) */
+        {
+                 1,     /* No reduction */
+                 2,     /* 1/2 reduction */
+                 4      /* 1/4 reduction */
+        },
+        /* Character color count: 256 (palette) */
+        {
+                 2,     /* No reduction */
+                 4,     /* 1/2 reduction */
+                -1      /* 1/4 reduction (invalid) */
+        },
+        /* Character color count: 2048 (palette)*/
+        {
+                 4,     /* No reduction */
+                -1,     /* 1/2 reduction (invalid) */
+                -1      /* 1/4 reduction (invalid) */
+        },
+        /* Character color count: 32,768 (RGB) */
+        {
+                 4,     /* No reduction */
+                -1,     /* 1/2 reduction (invalid) */
+                -1      /* 1/4 reduction (invalid) */
+        },
+        /* Character color count: 16,770,000 (RGB) */
+        {
+                 8,     /* No reduction */
+                -1,     /* 1/2 reduction (invalid) */
+                -1      /* 1/4 reduction (invalid) */
+        }
+};
+
+/* Table representing range of access timings for normal TV screen mode
+ *
+ * Example:
+ * If T0 is selected as the pattern name data access timing, the range
+ * T0,T1,T2 and T4,T5,T6,T7 can be selected for character pattern data
+ */
+static const uint8_t _timing_range_normal[8] = {
+        /* T0 -> T0, T1, T2, T4, T5, T6, T7 */
+        0xF7,
+        /* T1 -> T0, T1, T2, T3, T5, T6, T7 */
+        0xEF,
+        /* T2 -> T0, T1, T2, T3, T6, T7 */
+        0xCF,
+        /* T3 -> T0, T1, T2, T3, T7 */
+        0x8F,
+        /* T4 -> T0, T1, T2, T3 */
+        0x0F,
+        /* T5 -> T1, T2, T3 */
+        0x0E,
+        /* T6 -> T2, T3 */
+        0x0C,
+        /* T7 -> T3 */
+        0x08
+};
+
+/* Table representing range of access timings for hi-res TV screen mode
+ *
+ * Example:
+ * If T0 is selected as the pattern name data access timing, the range
+ * T0,T1,T2 and T4,T5,T6,T7 can be selected for character pattern data
+ */
+static const uint8_t _timing_range_hires[8] = {
+        /* T0 -> T0, T1, T2 */
+        0x07,
+        /* T1 -> T1, T2, T3 */
+        0x0E,
+        /* T2 -> T0, T2, T3 */
+        0x0D,
+        /* T3 -> T0, T1, T3 */
+        0x0B,
+        /* T4 -> Invalid */
+        0x00,
+        /* T5 -> Invalid */
+        0x00,
+        /* T6 -> Invaild */
+        0x00,
+        /* T7 -> Invalid */
+        0x00
+};
+
+/* Table representing range of access timings for vertical cell scrolling
+ *
+ * Note, access for NBG0 and NBG1 must be by the same bank, and NBG0
+ * access must be selected first
+ */
+static const uint8_t _timing_range_vcs[2] = {
+        /* NBG0 */
+        0x03,
+        /* NBG1 */
+        0x07
+};
+
+static int pnd_bitmap_calculate(struct scrn_cell_format *);
+static bool pnd_bitmap_validate(uint16_t, uint8_t);
+
 int
 main(int argc __unused, char *argv[] __unused)
 {
-        struct scrn_cell_format config_nbg0;
-        memset(&config_nbg0, 0x00, sizeof(struct scrn_cell_format));
-        struct scrn_cell_format config_nbg1;
-        memset(&config_nbg1, 0x00, sizeof(struct scrn_cell_format));
-        struct scrn_cell_format config_nbg2;
-        memset(&config_nbg2, 0x00, sizeof(struct scrn_cell_format));
-        struct scrn_cell_format config_nbg3;
-        memset(&config_nbg3, 0x00, sizeof(struct scrn_cell_format));
+        DEBUG_PRINTF("sizeof(union vram_cycp): %lu bytes(s)\n", sizeof(union vram_cycp));
+        DEBUG_PRINTF("sizeof(struct scrn_cell_format): %lu byte(s)\n", sizeof(struct scrn_cell_format));
+        DEBUG_PRINTF("sizeof(_timing_count_pnd): %lu byte(s)\n", sizeof(_timing_count_pnd));
+        DEBUG_PRINTF("sizeof(_timing_count_cpd): %lu byte(s)\n", sizeof(_timing_count_cpd));
+        DEBUG_PRINTF("sizeof(_timing_range_normal): %lu byte(s)\n", sizeof(_timing_range_normal));
+        DEBUG_PRINTF("sizeof(_timing_range_hires): %lu byte(s)\n", sizeof(_timing_range_hires));
+        DEBUG_PRINTF("sizeof(_timing_range_vcs): %lu byte(s)\n", sizeof(_timing_range_vcs));
 
-        config_nbg0.scf_scroll_screen = SCRN_NBG0;
-        config_nbg0.scf_map.plane_a = VRAM_ADDR_4MBIT(2, 0x00000);
-        config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000);
-        config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000);
-        config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000);
+        struct scrn_cell_format configs[4];
+        memset(&configs, 0x00, sizeof(configs));
+        union vram_cycp vram_cycp;
 
-        uint8_t bitmap_nbg0;
-        pnd_bitmap_calculate(&bitmap_nbg0, &config_nbg0);
-        uint8_t bitmap_nbg1;
-        pnd_bitmap_calculate(&bitmap_nbg1, &config_nbg1);
-        uint8_t bitmap_nbg2;
-        pnd_bitmap_calculate(&bitmap_nbg2, &config_nbg2);
-        uint8_t bitmap_nbg3;
-        pnd_bitmap_calculate(&bitmap_nbg3, &config_nbg3);
+        vdp2cycp(SCRN_NBG0, configs, &vram_cycp);
 
-        uint8_t bitmap;
-        bitmap = bitmap_nbg0;
+        /* config_nbg0.scf_scroll_screen = SCRN_NBG0; */
+        /* config_nbg0.scf_map.plane_a = VRAM_ADDR_4MBIT(2, 0x00000); */
+        /* config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000); */
+        /* config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000); */
+        /* config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000); */
 
-        pnd_bitmap_validate(0x0300, bitmap);
+        /* pnd_bitmap_validate(0x0300, bitmap); */
 
-        DEBUG_PRINTF("0x%02X\n", bitmap);
+        return 0;
+}
+
+/*-
+ * Calculate VDP2 VRAM cycle patterns given selected VDP2 screens SCRNS.
+ *
+ * If successful, 0 is returned. Otherwise, a negative value is returned
+ * for the following cases:
+ *
+ *   - VRAM_CYCP is NULL
+ *   - SCRNS has an invalid screen
+ *   - CONFIGS is NULL
+ *   - Case 4
+ *   - Case 5
+ *   - Case 6
+ *   - Case 7
+ *   - Case 8
+ */
+int
+vdp2cycp(uint32_t scrns __unused, const struct scrn_cell_format *configs, union vram_cycp *vram_cycp __unused)
+{
+        if (vram_cycp == NULL) {
+                return -1;
+        }
+
+        if (configs == NULL) {
+                return -1;
+        }
+
+        if (scrns == 0x00000000) {
+                return -1;
+        }
+
+        if ((scrns & 0xFFFFFFC0) != 0x00000000) {
+                return -1;
+        }
 
         return 0;
 }
@@ -88,37 +233,55 @@ main(int argc __unused, char *argv[] __unused)
  * If succesful, 0 is returned. Otherwise, a negative value is return
  * for the following cases:
  *
- *   - BITMAP is NULL
  *   - CONFIG is NULL
  */
-int
-pnd_bitmap_calculate(uint8_t *bitmap, const struct scrn_cell_format *config)
+static int
+pnd_bitmap_calculate(struct scrn_cell_format *config)
 {
-        if (bitmap == NULL) {
-                return -1;
-        }
+#define BANK_BIT(b) (1 << (4 - (b) - 1))
 
         if (config == NULL) {
                 return -1;
         }
 
-        uint32_t map_count;
-        map_count = ((config->scf_scroll_screen & (SCRN_RBG0 | SCRN_RBG1)) == 0)
-            ? 4
-            : 16;
+        config->priv_pnd_bitmap = 0x00;
 
-        *bitmap = 0x00;
+        uint8_t bank;
 
-        uint32_t i;
-        for (i = 0; i < map_count; i++) {
+        switch (config->scf_scroll_screen) {
+        case SCRN_NBG0:
+        case SCRN_NBG1:
+        case SCRN_NBG2:
+        case SCRN_NBG3:
                 /* XXX: 4 or 8-Mbit? */
-                uint8_t bank;
-                bank = VRAM_BANK_4MBIT(config->scf_map.planes[i]);
+                bank = VRAM_BANK_4MBIT(config->scf_map.planes[0]);
+                config->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                *bitmap |= 1 << (4 - bank - 1);
+                bank = VRAM_BANK_4MBIT(config->scf_map.planes[1]);
+                config->priv_pnd_bitmap |= BANK_BIT(bank);
+
+                bank = VRAM_BANK_4MBIT(config->scf_map.planes[2]);
+                config->priv_pnd_bitmap |= BANK_BIT(bank);
+
+                bank = VRAM_BANK_4MBIT(config->scf_map.planes[3]);
+                config->priv_pnd_bitmap |= BANK_BIT(bank);
+
+                return 0;
+        case SCRN_RBG1:
+        case SCRN_RBG0: {
+                uint32_t i;
+                for (i = 0; i < 16; i++) {
+                        /* XXX: 4 or 8-Mbit? */
+                        bank = VRAM_BANK_4MBIT(config->scf_map.planes[i]);
+
+                        config->priv_pnd_bitmap |= BANK_BIT(bank);
+                }
+        } return 0;
+        default:
+                return -1;
         }
 
-        return 0;
+#undef BANK_BIT
 }
 
 /*-
@@ -127,7 +290,7 @@ pnd_bitmap_calculate(uint8_t *bitmap, const struct scrn_cell_format *config)
  *
  * If successful, true is returned. Otherwise, false.
  */
-bool
+static bool
 pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
 {
         /*-
@@ -229,7 +392,7 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
         mask_count = pnd_bank_mask[bank][0];
 
         uint32_t i;
-        for (i = 0; i < mask_count / 2; i++) {
+        for (i = 0; i < (mask_count / 2); i++) {
                 if ((bitmap & pnd_bank_mask[bank][1 + i]) != 0x00) {
                         return false;
                 }
@@ -242,42 +405,9 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
         return true;
 }
 
-/*-
- * Calculate VDP2 VRAM cycle patterns given selected VDP2 screens SCRNS.
- *
- * If successful, 0 is returned. Otherwise, a negative value is returned
- * for the following cases:
- *
- *   - P is NULL
- *   - SCRNS has an invalid screen
- *   - Case 3
- *   - Case 4
- *   - Case 5
- *   - Case 6
- *   - Case 7
- *   - Case 8
- */
-int
-vdp2cycp(uint32_t scrns __unused, vram_cycp *p __unused)
-{
-        if (p == NULL) {
-                return -1;
-        }
-
-        if (scrns == 0x00000000) {
-                return -1;
-        }
-
-        if ((scrns & 0xFFFFFFC0) != 0x00000000) {
-                return -1;
-        }
-
-        return 0;
-}
-
 #ifdef DEBUG
 static char *
-debug_print_pattern(uint32_t pv __unused)
+debug_print_pattern(uint32_t pv)
 {
         char *output_buffer;
 

@@ -15,6 +15,10 @@
 #define SCRN_NBG3               (1 << 3) /* Normal background (NBG3) */
 #define SCRN_RBG0               (1 << 4) /* Rotational background (RBG0) */
 
+#define SCRN_REDUCTION_NONE     0 /* No reduction */
+#define SCRN_REDUCTION_HALF     1 /* 1/2 reduction */
+#define SCRN_REDUCTION_QUARTER  2 /* 1/4 reduction */
+
 #define SCRN_CCC_PALETTE_16     0
 #define SCRN_CCC_PALETTE_256    1
 #define SCRN_CCC_PALETTE_2048   2
@@ -29,6 +33,8 @@ struct scrn_cell_format {
         uint32_t scf_scroll_screen; /* Normal/rotational background */
         uint32_t scf_cc_count; /* Character color count */
         uint32_t scf_cp_table; /* Character pattern table lead address*/
+
+        uint32_t scf_reduction; /* Background reduction */
 
         union {
                 uint32_t planes[16];
@@ -50,8 +56,10 @@ struct scrn_cell_format {
                         uint32_t plane_n; /* For RBG0 and RBG1 use only */
                         uint32_t plane_o; /* For RBG0 and RBG1 use only */
                         uint32_t plane_p; /* For RBG0 and RBG1 use only */
-                };
+                } __packed;
         } scf_map; /* Map lead addresses */
+
+        uint8_t priv_pnd_bitmap; /* Holds the pattern name data bitmap */
 };
 
 /*-
@@ -79,13 +87,17 @@ struct scrn_cell_format {
 #define VRAM_CTL_CYCP_CPU_RW            0xE /* CPU read/write */
 #define VRAM_CTL_CYCP_NO_ACCESS         0xF /* No access */
 
+/* Calculate starting bit for T */
 #define VRAM_CTL_CYCP_TIMING_BIT(x)     (((x) & 0x7) << 2)
-#define VRAM_CTL_CYCP_TIMING_MASK(x)    ((0x0000000F) << VRAM_CTL_CYCP_TIMING_BIT(x))
 
-#define VRAM_CTL_CYCP_TIMING_VALUE(pv, x)                                      \
-        (((uint32_t)(pv) & VRAM_CTL_CYCP_TIMING_MASK(x)) >> VRAM_CTL_CYCP_TIMING_BIT(x))
+/* Calculate timing mask for T */
+#define VRAM_CTL_CYCP_TIMING_MASK(t)    ((0x0000000F) << VRAM_CTL_CYCP_TIMING_BIT(t))
 
-typedef union {
+/* Extract timing value T */
+#define VRAM_CTL_CYCP_TIMING_VALUE(pv, t)                                      \
+        (((uint32_t)(pv) & VRAM_CTL_CYCP_TIMING_MASK(t)) >> VRAM_CTL_CYCP_TIMING_BIT(t))
+
+union vram_cycp {
         /*-
          * To byte swap (Big-endian):
          *
@@ -104,6 +116,6 @@ typedef union {
                 unsigned int t6:4; /* Timing T6 */
                 unsigned int t7:4; /* Timing T7 */
         } __packed pt[4];
-} vram_cycp;
+};
 
 #endif /* !VDP2_H_ */
