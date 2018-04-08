@@ -13,6 +13,17 @@
 
 #include "vdp2.h"
 
-int vdp2cycp(uint32_t, const struct scrn_cell_format *, union vram_cycp *);
+struct state {
+        /* XXX: Place holder */
+        uint16_t ramctl;
+
+        struct scrn_format *cell_configs[SCRN_COUNT];
+        uint8_t cell_count;
+
+        struct scrn_format *bitmap_configs[SCRN_COUNT];
+        uint8_t bitmap_count;
+};
+
+int vdp2cycp(struct state *, uint8_t, union vram_cycp *);
 
 #endif /* !VDP2CYCP_H_ */

@@ -13,7 +13,13 @@
 
 /* Table representing number of VRAM accesses required for pattern name
  * data. */
-static const int8_t _timing_count_pnd[2][3] = {
+static const int8_t _timings_count_pnd[3][3] = {
+        /* Invalid */
+        {
+                -1,
+                -1,
+                -1,
+        },
         /* PND 1-word */
         {
                 1,      /* No reduction */
@@ -30,7 +36,42 @@ static const int8_t _timing_count_pnd[2][3] = {
 
 /* Table representing number of VRAM accesses required for character
  * pattern data. */
-static const int8_t _timing_count_cpd[5][3] = {
+static const int8_t _timings_count_cell_cpd[5][3] = {
+        /* Character color count: 16 (palette) */
+        {
+                 1,     /* No reduction */
+                 2,     /* 1/2 reduction */
+                 4      /* 1/4 reduction */
+        },
+        /* Character color count: 256 (palette) */
+        {
+                 2,     /* No reduction */
+                 4,     /* 1/2 reduction */
+                -1      /* 1/4 reduction (invalid) */
+        },
+        /* Character color count: 2048 (palette)*/
+        {
+                 4,     /* No reduction */
+                -1,     /* 1/2 reduction (invalid) */
+                -1      /* 1/4 reduction (invalid) */
+        },
+        /* Character color count: 32,768 (RGB) */
+        {
+                -1,     /* Invalid */
+                -1,     /* Invalid */
+                -1      /* Invalid */
+        },
+        /* Character color count: 16,770,000 (RGB) */
+        {
+                -1,     /* Invalid */
+                -1,     /* Invalid */
+                -1      /* Invalid */
+        }
+};
+
+/* Table representing number of VRAM accesses required for character
+ * pattern data. */
+static const int8_t _timings_count_bitmap_cpd[5][3] = {
         /* Character color count: 16 (palette) */
         {
                  1,     /* No reduction */
@@ -69,7 +110,7 @@ static const int8_t _timing_count_cpd[5][3] = {
  * timing, the range T0,T1,T2 and T4,T5,T6,T7 can be selected for
  * character pattern data.
  */
-static const uint8_t _timing_range_normal[8] = {
+static const uint8_t _timings_range_normal[8] = {
         /* T0 -> T0, T1, T2, T4, T5, T6, T7 */
         0xF7,
         /* T1 -> T0, T1, T2, T3, T5, T6, T7 */
@@ -89,7 +130,7 @@ static const uint8_t _timing_range_normal[8] = {
 };
 
 /* Table representing range of access timings for hi-res TV screen mode. */
-static const uint8_t _timing_range_hires[8] = {
+static const uint8_t _timings_range_hires[8] = {
         /* T0 -> T0, T1, T2 */
         0x07,
         /* T1 -> T1, T2, T3 */
@@ -113,42 +154,82 @@ static const uint8_t _timing_range_hires[8] = {
  * Note, access for NBG0 and NBG1 must be by the same bank, and NBG0
  * access must be selected first.
  */
-static const uint8_t _timing_range_vcs[2] = {
+static const uint8_t _timings_range_vcs[2] = {
         /* NBG0 */
         0x03,
         /* NBG1 */
         0x07
 };
 
-static int pnd_bitmap_calculate(struct scrn_cell_format *) __unused;
-static bool pnd_bitmap_validate(uint16_t, uint8_t) __unused;
+static void state_init(struct state *) __unused;
+static void state_configs_build(struct state *, struct scrn_format *) __unused;
+
+static int pnd_bitmap_calculate(struct scrn_format *) __unused;
+static bool pnd_bitmap_validate(const struct state *state, uint8_t) __unused;
 
 int
 main(int argc __unused, char *argv[] __unused)
 {
         DEBUG_PRINTF("sizeof(union vram_cycp): %lu bytes(s)\n", sizeof(union vram_cycp));
         DEBUG_PRINTF("sizeof(struct scrn_cell_format): %lu byte(s)\n", sizeof(struct scrn_cell_format));
-        DEBUG_PRINTF("sizeof(_timing_count_pnd): %lu byte(s)\n", sizeof(_timing_count_pnd));
-        DEBUG_PRINTF("sizeof(_timing_count_cpd): %lu byte(s)\n", sizeof(_timing_count_cpd));
-        DEBUG_PRINTF("sizeof(_timing_range_normal): %lu byte(s)\n", sizeof(_timing_range_normal));
-        DEBUG_PRINTF("sizeof(_timing_range_hires): %lu byte(s)\n", sizeof(_timing_range_hires));
-        DEBUG_PRINTF("sizeof(_timing_range_vcs): %lu byte(s)\n", sizeof(_timing_range_vcs));
+        DEBUG_PRINTF("sizeof(struct scrn_bitmap_format): %lu byte(s)\n", sizeof(struct scrn_bitmap_format));
+        DEBUG_PRINTF("sizeof(_timings_count_pnd): %lu byte(s)\n", sizeof(_timings_count_pnd));
+        DEBUG_PRINTF("sizeof(_timings_count_cell_cpd): %lu byte(s)\n", sizeof(_timings_count_cell_cpd));
+        DEBUG_PRINTF("sizeof(_timings_count_bitmap_cpd): %lu byte(s)\n", sizeof(_timings_count_bitmap_cpd));
+        DEBUG_PRINTF("sizeof(_timings_range_normal): %lu byte(s)\n", sizeof(_timings_range_normal));
+        DEBUG_PRINTF("sizeof(_timings_range_hires): %lu byte(s)\n", sizeof(_timings_range_hires));
+        DEBUG_PRINTF("sizeof(_timings_range_vcs): %lu byte(s)\n", sizeof(_timings_range_vcs));
 
-        struct scrn_cell_format configs[4];
+        struct state state;
+
+        state_init(&state);
+
+        /* XXX: Place holder */
+        state.ramctl = 0x03000;
+
+        struct scrn_format configs[SCRN_COUNT];
+        struct scrn_cell_format config_nbg0;
+        struct scrn_cell_format config_nbg1;
+        struct scrn_cell_format config_nbg2;
+        struct scrn_cell_format config_nbg3;
+
         memset(&configs, 0x00, sizeof(configs));
+        memset(&config_nbg0, 0x00, sizeof(config_nbg0));
+        memset(&config_nbg1, 0x00, sizeof(config_nbg1));
+        memset(&config_nbg2, 0x00, sizeof(config_nbg2));
+        memset(&config_nbg3, 0x00, sizeof(config_nbg3));
+
+        configs[0].sf_scroll_screen = SCRN_NBG0;
+        configs[0].sf_format = SCRN_FORMAT_CELL;
+        configs[0].sf_cc_count = SCRN_CCC_PALETTE_16;
+        configs[0].sf_config = &config_nbg0;
+
+        config_nbg0.scf_pnd_size = 1;
+        config_nbg0.scf_cp_table = VRAM_ADDR_4MBIT(0, 0x00000);
+        config_nbg0.scf_vcs_table = VRAM_ADDR_4MBIT(0, 0x00000);
+        config_nbg0.scf_reduction = SCRN_REDUCTION_NONE;
+        config_nbg0.scf_map.plane_a = VRAM_ADDR_4MBIT(2, 0x00000);
+        config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000);
+        config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000);
+        config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000);
+
+        /* XXX:
+         * Loop through every screen and calculate PND bit-map. This
+         * should be done when configuring VDP2 cell format */
+        uint32_t i;
+        for (i = 0; i < SCRN_COUNT; i++) {
+                pnd_bitmap_calculate(&configs[i]);
+        }
+
+        DEBUG_FORMAT(&configs[0]);
+
+        state_configs_build(&state, configs);
+
         union vram_cycp vram_cycp;
 
-        configs[0].scf_scroll_screen = SCRN_NBG0;
-
-        DEBUG_CELL_FORMAT(&configs[0]);
-
-        vdp2cycp(SCRN_NBG0, configs, &vram_cycp);
-
-        /* config_nbg0.scf_scroll_screen = SCRN_NBG0; */
-        /* config_nbg0.scf_map.plane_a = VRAM_ADDR_4MBIT(2, 0x00000); */
-        /* config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000); */
-        /* config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000); */
-        /* config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000); */
+        int error;
+        error = vdp2cycp(&state, SCRN_NBG0, &vram_cycp);
+        DEBUG_PRINTF("vdp2cycp: %i\n", error);
 
         return 0;
 }
@@ -159,9 +240,9 @@ main(int argc __unused, char *argv[] __unused)
  * If successful, 0 is returned. Otherwise, a negative value is returned
  * for the following cases:
  *
- *   - VRAM_CYCP is NULL
+ *   - STATE is NULL
  *   - SCRNS has an invalid screen
- *   - CONFIGS is NULL
+ *   - VRAM_CYCP is NULL
  *   - Case 4
  *   - Case 5
  *   - Case 6
@@ -169,34 +250,97 @@ main(int argc __unused, char *argv[] __unused)
  *   - Case 8
  */
 int
-vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp *vram_cycp)
+vdp2cycp(struct state *state, uint8_t scrns, union vram_cycp *vram_cycp)
 {
+        if (state == NULL) {
+                return -1;
+        }
+
         if (vram_cycp == NULL) {
                 return -1;
         }
 
-        if (configs == NULL) {
+        if (scrns == 0x00) {
                 return -1;
         }
 
-        if (scrns == 0x00000000) {
+        if ((scrns & 0xC0) != 0x00) {
                 return -1;
         }
-
-        if ((scrns & 0xFFFFFFC0) != 0x00000000) {
-                return -1;
-        }
-
-        /* Loop through every screen and calculate PND bit-map. Bitwise OR
-         * it and validate it */
 
         /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
+
+        uint32_t scrn;
+
+        /* Bitwise OR it and validate PND bit-maps */
+        uint8_t pnd_bitmap;
+        pnd_bitmap = 0x00;
+
+        for (scrn = 0; scrn < state->cell_count; scrn++) {
+                if ((scrns & (1 << scrn)) == 0) {
+                        continue;
+                }
+
+                const struct scrn_format *config;
+                config = state->cell_configs[scrn];
+
+                if (config == NULL) {
+                        continue;
+                }
+
+                const struct scrn_cell_format *cell_config;
+                cell_config = config->sf_config;
+
+                pnd_bitmap |= cell_config->priv_pnd_bitmap;
+        }
+
+        if ((state->cell_count > 0) && (!(pnd_bitmap_validate(state, pnd_bitmap)))) {
+                return -1;
+        }
+
+        for (scrn = 0; scrn < state->cell_count; scrn++) {
+                if ((scrns & (1 << scrn)) == 0) {
+                        continue;
+                }
+
+                const struct scrn_format *config;
+                config = state->cell_configs[scrn];
+
+                if (config == NULL) {
+                        continue;
+                }
+
+                const struct scrn_cell_format *cell_config;
+                cell_config = config->sf_config;
+
+                /* Determine how many PND access timings are needed (due
+                 * to reduction) */
+                int8_t tpnd;
+                tpnd = _timings_count_pnd[cell_config->scf_pnd_size][cell_config->scf_reduction];
+
+                /* Invalid number of PND access timings */
+                if (tpnd < 0) {
+                        return -1;
+                }
+
+                /* Determine how many CPD access timings are needed (due
+                 * to reduction) and character color count */
+                int8_t tcpd;
+                tcpd = _timings_count_cell_cpd[config->sf_cc_count][cell_config->scf_reduction];
+
+                /* Invalid number of PND access timings */
+                if (tcpd < 0) {
+                        return -1;
+                }
+
+                DEBUG_PRINTF("tpnd: %i access timing required\n", tpnd);
+                DEBUG_PRINTF("tcpd: %i access timing required\n", tcpd);
+        }
 
         /* Determine if VCS is being used for NBG0 and/or NBG1? */
         // XXX: Determine in which VRAM bank VCST is stored in
         // XXX: Is there a restriction as to where VCST can be stored?
 
-        /* Determine how many PND access timings are needed (due to reduction) */
         /* Allocate PND access timing and store timing */
 
         // XXX: For example, If 1/4 reduction is used, PNDT should be on
@@ -214,6 +358,55 @@ vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp
 }
 
 /*-
+ * Initialize HW state.
+ */
+static void
+state_init(struct state *state)
+{
+        if (state == NULL) {
+                return;
+        }
+
+        memset(state->cell_configs, 0x00, sizeof(state->cell_configs));
+        state->cell_count = 0;
+
+        memset(state->bitmap_configs, 0x00, sizeof(state->bitmap_configs));
+        state->bitmap_count = 0;
+}
+
+/*-
+ * Given an array of configurations, Generate two table look ups of cell
+ * and bitmap configs, respectively.
+ */
+static void
+state_configs_build(struct state *state, struct scrn_format *configs)
+{
+        if (configs == NULL) {
+                return;
+        }
+
+        state->cell_count = 0;
+        state->bitmap_count = 0;
+
+        uint32_t scrn;
+        for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
+                struct scrn_format *config;
+                config = &configs[scrn];
+
+                switch (config->sf_format) {
+                case SCRN_FORMAT_CELL:
+                        state->cell_configs[scrn] = config;
+                        state->cell_count++;
+                        break;
+                case SCRN_FORMAT_BITMAP:
+                        state->bitmap_configs[scrn] = config;
+                        state->bitmap_count++;
+                        break;
+                }
+        }
+}
+
+/*-
  * Generate an 8-bit bit-map BITMAP of where pattern name data is stored
  * amongst the 4 banks.
  *
@@ -221,9 +414,11 @@ vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp
  * for the following cases:
  *
  *   - CONFIG is NULL
+ *   - CONFIG doesn't point to valid format
+ *   - CONFIG is not a cell format
  */
 static int
-pnd_bitmap_calculate(struct scrn_cell_format *config)
+pnd_bitmap_calculate(struct scrn_format *config)
 {
 #define BANK_BIT(b) (1 << (4 - (b) - 1))
 
@@ -231,27 +426,38 @@ pnd_bitmap_calculate(struct scrn_cell_format *config)
                 return -1;
         }
 
-        config->priv_pnd_bitmap = 0x00;
+        if (config->sf_config == NULL) {
+                return -1;
+        }
+
+        if (config->sf_format != SCRN_FORMAT_CELL) {
+                return -1;
+        }
+
+        struct scrn_cell_format *cell_config;
+        cell_config = config->sf_config;
+
+        cell_config->priv_pnd_bitmap = 0x00;
 
         uint8_t bank;
 
-        switch (config->scf_scroll_screen) {
+        switch (config->sf_scroll_screen) {
         case SCRN_NBG0:
         case SCRN_NBG1:
         case SCRN_NBG2:
         case SCRN_NBG3:
                 /* XXX: 4 or 8-Mbit? */
-                bank = VRAM_BANK_4MBIT(config->scf_map.planes[0]);
-                config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[0]);
+                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(config->scf_map.planes[1]);
-                config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[1]);
+                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(config->scf_map.planes[2]);
-                config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[2]);
+                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(config->scf_map.planes[3]);
-                config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[3]);
+                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
 
                 return 0;
         case SCRN_RBG1:
@@ -259,9 +465,9 @@ pnd_bitmap_calculate(struct scrn_cell_format *config)
                 uint32_t i;
                 for (i = 0; i < 16; i++) {
                         /* XXX: 4 or 8-Mbit? */
-                        bank = VRAM_BANK_4MBIT(config->scf_map.planes[i]);
+                        bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[i]);
 
-                        config->priv_pnd_bitmap |= BANK_BIT(bank);
+                        cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
                 }
         } return 0;
         default:
@@ -278,7 +484,7 @@ pnd_bitmap_calculate(struct scrn_cell_format *config)
  * If successful, true is returned. Otherwise, false.
  */
 static bool
-pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
+pnd_bitmap_validate(const struct state *state, uint8_t bitmap)
 {
         /*-
          * Where the pattern name data can be placed:
@@ -312,6 +518,10 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
          * The bits for each bank represent where pattern name data can
          * be stored.
          *
+         * +---------------------------+
+         * | Bit                       |
+         * +-------+-------------------+
+         * | 5   4 |  3    2    1    0 |
          * +-------+----+----+----+----+-------+------+
          * | Bank  | A0 | A1 | B0 | B1 | Value | Mask |
          * +-------+----+----+----+----+-------+------+
@@ -376,7 +586,7 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
 
         /* XXX: This would move elsewhere */
         uint8_t bank;
-        bank = (ramctl & 0x0300) >> 8;
+        bank = (state->ramctl & 0x0300) >> 8;
 
         uint32_t mask_count;
         mask_count = pnd_bank_mask[bank][0];

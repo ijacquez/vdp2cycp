@@ -16,6 +16,11 @@
 #define SCRN_NBG2               (1 << 2) /* Normal background (NBG2) */
 #define SCRN_NBG3               (1 << 3) /* Normal background (NBG3) */
 #define SCRN_RBG0               (1 << 4) /* Rotational background (RBG0) */
+#define SCRN_COUNT              4
+
+#define SCRN_FORMAT_INVALID     0
+#define SCRN_FORMAT_CELL        1
+#define SCRN_FORMAT_BITMAP      2
 
 #define SCRN_REDUCTION_NONE     0 /* No reduction */
 #define SCRN_REDUCTION_HALF     1 /* 1/2 reduction */
@@ -31,9 +36,38 @@
 
 #define VRAM_BANK_4MBIT(x)      (((x) >> 17) & 0x0007)
 
+struct scrn_format {
+        uint8_t sf_scroll_screen;       /* Normal/rotational background */
+        uint8_t sf_format;              /* Cell format
+                                         * Bitmap format */
+        uint8_t sf_cc_count;            /* Character color count */
+
+        void *sf_config;
+};
+
+struct scrn_bitmap_format {
+        struct {
+                uint16_t width;
+                uint16_t height;
+        } sbf_bitmap_size;              /* Bitmap sizes
+                                         * 512x256
+                                         * 512x512
+                                         * 1024x256,
+                                         * 1024x512 */
+        uint32_t sbf_color_palette;     /* Color palette lead address (if
+                                         * applicable) */
+        uint32_t sbf_bitmap_pattern;    /* Bitmap pattern lead address */
+
+        uint8_t sbf_rp_mode;            /* RBG0 and RBG1 only
+                                         *
+                                         * Rotation parameter mode
+                                         *   Mode 0: Rotation Parameter A
+                                         *   Mode 1: Rotation Parameter B
+                                         *   Mode 2: Swap Coefficient Data Read
+                                         *   Mode 3: Swap via Rotation Parameter Window */
+};
+
 struct scrn_cell_format {
-        uint8_t scf_scroll_screen;      /* Normal/rotational background */
-        uint8_t scf_cc_count;           /* Character color count */
         uint8_t scf_character_size;     /* Character size: (1 * 1) or (2 * 2) cells */
         uint8_t scf_pnd_size;           /* Pattern name data size:
                                          * (1)-word
@@ -134,14 +168,14 @@ union vram_cycp {
         uint32_t pv[4]; /* VRAM cycle pattern value */
 
         struct {
-                unsigned int t0:4; /* Timing T0 */
-                unsigned int t1:4; /* Timing T1 */
-                unsigned int t2:4; /* Timing T2 */
-                unsigned int t3:4; /* Timing T3 */
-                unsigned int t4:4; /* Timing T4 */
-                unsigned int t5:4; /* Timing T5 */
-                unsigned int t6:4; /* Timing T6 */
-                unsigned int t7:4; /* Timing T7 */
+                unsigned int t0:4;
+                unsigned int t1:4;
+                unsigned int t2:4;
+                unsigned int t3:4;
+                unsigned int t4:4;
+                unsigned int t5:4;
+                unsigned int t6:4;
+                unsigned int t7:4;
         } __packed pt[4];
 };
 

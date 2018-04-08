@@ -36,15 +36,15 @@
 #endif /* DEBUG */
 
 #ifdef DEBUG
-#define DEBUG_CELL_FORMAT(config) do {                                         \
-        char *debug_print_cell_format(const struct scrn_cell_format *);        \
+#define DEBUG_FORMAT(config) do {                                              \
+        char *debug_print_format(const struct scrn_format *);                  \
         char *_output_buffer;                                                  \
-        _output_buffer = debug_print_cell_format(config);                      \
+        _output_buffer = debug_print_format(config);                           \
         DEBUG_PRINTF("%s", _output_buffer);                                    \
         free(_output_buffer);                                                  \
 } while (false)
 #else
-#define DEBUG_CELL_FORMAT(...)
+#define DEBUG_FORMAT(...)
 #endif /* DEBUG */
 
 #endif /* !DEBUG_H_ */

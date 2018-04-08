@@ -72,15 +72,22 @@ debug_print_pattern(uint32_t pv)
 
 #ifdef DEBUG
 char *
-debug_print_cell_format(const struct scrn_cell_format *config __unused)
+debug_print_format(const struct scrn_format *config __unused)
 {
+        static const char *format_names[] __unused = {
+                "[1;31mInvalid[m",
+                "Cell",
+                "Bitmap",
+                NULL
+        };
+
         static const char *scroll_screen_names[] __unused = {
                 "NBG0",
                 "NBG1",
                 "NBG2",
                 "NBG3",
-                "RGB0",
-                "RGB1",
+                "[1;31mRGB0[m",
+                "[1;31mRGB1[m",
                 NULL
         };
 
@@ -101,7 +108,7 @@ debug_print_cell_format(const struct scrn_cell_format *config __unused)
         };
 
         static const char *pnd_size_names[] __unused = {
-                "Invalid",
+                "[1;31mInvalid[m",
                 "1-word",
                 "2-words",
                 NULL
@@ -117,35 +124,57 @@ debug_print_cell_format(const struct scrn_cell_format *config __unused)
         assert(output_buffer != NULL);
         memset(output_buffer, '\0', bytes);
 
-        (void)sprintf(output_buffer,
-            "\n"
-            "scf_scroll_screen: %s\n"
-            "     scf_cc_count: %s\n"
-            "     scf_pnd_size: %s\n"
-            "     scf_cp_table: 0x%08X\n"
-            "    scf_vcs_table: 0x%08X\n"
-            "    scf_reduction: %s\n"
-            "  scf_map.plane_a: 0x%08X (bank %i)\n"
-            "  scf_map.plane_b: 0x%08X (bank %i)\n"
-            "  scf_map.plane_c: 0x%08X (bank %i)\n"
-            "  scf_map.plane_d: 0x%08X (bank %i)\n"
-            "\n"
-            "  priv_pnd_bitmap: 0x%02X\n",
-            scroll_screen_names[log2_pow2(config->scf_scroll_screen)],
-            cc_count_names[config->scf_cc_count],
-            pnd_size_names[config->scf_pnd_size],
-            config->scf_cp_table,
-            config->scf_vcs_table,
-            reduction_names[config->scf_reduction],
-            config->scf_map.plane_a,
-            VRAM_BANK_4MBIT(config->scf_map.plane_a),
-            config->scf_map.plane_b,
-            VRAM_BANK_4MBIT(config->scf_map.plane_b),
-            config->scf_map.plane_c,
-            VRAM_BANK_4MBIT(config->scf_map.plane_c),
-            config->scf_map.plane_d,
-            VRAM_BANK_4MBIT(config->scf_map.plane_d),
-            config->priv_pnd_bitmap);
+        switch (config->sf_format) {
+        case SCRN_FORMAT_CELL: {
+                struct scrn_cell_format *cell_config;
+                cell_config = config->sf_config;
+
+                (void)sprintf(output_buffer,
+                    "\n"
+                    "    scroll_screen: %s\n"
+                    "           format: %s\n"
+                    "         cc_count: %s\n"
+                    "     scf_pnd_size: %s\n"
+                    "     scf_cp_table: 0x%08X\n"
+                    "    scf_vcs_table: 0x%08X\n"
+                    "    scf_reduction: %s\n"
+                    "  scf_map.plane_a: 0x%08X (bank %i)\n"
+                    "  scf_map.plane_b: 0x%08X (bank %i)\n"
+                    "  scf_map.plane_c: 0x%08X (bank %i)\n"
+                    "  scf_map.plane_d: 0x%08X (bank %i)\n"
+                    "\n"
+                    "  priv_pnd_bitmap: 0x%02X\n",
+                    scroll_screen_names[log2_pow2(config->sf_scroll_screen)],
+                    format_names[config->sf_format],
+                    cc_count_names[config->sf_cc_count],
+                    pnd_size_names[cell_config->scf_pnd_size],
+                    cell_config->scf_cp_table,
+                    cell_config->scf_vcs_table,
+                    reduction_names[cell_config->scf_reduction],
+                    cell_config->scf_map.plane_a,
+                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_a),
+                    cell_config->scf_map.plane_b,
+                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_b),
+                    cell_config->scf_map.plane_c,
+                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_c),
+                    cell_config->scf_map.plane_d,
+                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_d),
+                    cell_config->priv_pnd_bitmap);
+        } break;
+        case SCRN_FORMAT_BITMAP: {
+                struct scrn_bitmap_format *bitmap_config __unused;
+                bitmap_config = config->sf_config;
+
+                (void)sprintf(output_buffer,
+                    "\n"
+                    "    scroll_screen: %s\n"
+                    "           format: %s\n"
+                    "         cc_count: %s\n",
+                    scroll_screen_names[log2_pow2(config->sf_scroll_screen)],
+                    format_names[config->sf_format],
+                    cc_count_names[config->sf_cc_count]);
+        } break;
+        }
 
         return output_buffer;
 }
