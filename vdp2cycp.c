@@ -45,7 +45,7 @@ static char *debug_print_pattern(uint32_t) __unused;
 #endif /* DEBUG */
 
 /* Table representing number of VRAM accesses required for pattern name
- * data */
+ * data. */
 static const int8_t _timing_count_pnd[2][3] = {
         /* PND 1-word */
         {
@@ -62,7 +62,7 @@ static const int8_t _timing_count_pnd[2][3] = {
 };
 
 /* Table representing number of VRAM accesses required for character
- * pattern data */
+ * pattern data. */
 static const int8_t _timing_count_cpd[5][3] = {
         /* Character color count: 16 (palette) */
         {
@@ -96,11 +96,11 @@ static const int8_t _timing_count_cpd[5][3] = {
         }
 };
 
-/* Table representing range of access timings for normal TV screen mode
+/* Table representing range of access timings for normal TV screen mode.
  *
- * Example:
- * If T0 is selected as the pattern name data access timing, the range
- * T0,T1,T2 and T4,T5,T6,T7 can be selected for character pattern data
+ * For example, if T0 is selected as the pattern name data access
+ * timing, the range T0,T1,T2 and T4,T5,T6,T7 can be selected for
+ * character pattern data.
  */
 static const uint8_t _timing_range_normal[8] = {
         /* T0 -> T0, T1, T2, T4, T5, T6, T7 */
@@ -121,12 +121,7 @@ static const uint8_t _timing_range_normal[8] = {
         0x08
 };
 
-/* Table representing range of access timings for hi-res TV screen mode
- *
- * Example:
- * If T0 is selected as the pattern name data access timing, the range
- * T0,T1,T2 and T4,T5,T6,T7 can be selected for character pattern data
- */
+/* Table representing range of access timings for hi-res TV screen mode. */
 static const uint8_t _timing_range_hires[8] = {
         /* T0 -> T0, T1, T2 */
         0x07,
@@ -146,10 +141,10 @@ static const uint8_t _timing_range_hires[8] = {
         0x00
 };
 
-/* Table representing range of access timings for vertical cell scrolling
+/* Table representing range of access timings for vertical cell scrolling.
  *
  * Note, access for NBG0 and NBG1 must be by the same bank, and NBG0
- * access must be selected first
+ * access must be selected first.
  */
 static const uint8_t _timing_range_vcs[2] = {
         /* NBG0 */
@@ -223,7 +218,7 @@ vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp
                 return -1;
         }
 
-        /* Loop through every screen and calculate PND bitmap. Bitwise OR
+        /* Loop through every screen and calculate PND bit-map. Bitwise OR
          * it and validate it */
 
         /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
@@ -249,7 +244,7 @@ vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp
 }
 
 /*-
- * Generate an 8-bit bitmap BITMAP of where pattern name data is stored
+ * Generate an 8-bit bit-map BITMAP of where pattern name data is stored
  * amongst the 4 banks.
  *
  * If succesful, 0 is returned. Otherwise, a negative value is return
@@ -307,7 +302,7 @@ pnd_bitmap_calculate(struct scrn_cell_format *config)
 }
 
 /*-
- * Validate 8-bit bitmap BITMAP, which represent where pattern name data
+ * Validate 8-bit bit-map BITMAP, which represent where pattern name data
  * is stored amongst the 4 VRAM banks.
  *
  * If successful, true is returned. Otherwise, false.
@@ -336,7 +331,7 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
          * +--------+--------+--------+--------+--------+--------+ */
 
         /*-
-         * The bitmap is composed of 6 bits.
+         * The bit-map is composed of 6 bits.
          *
          * The first 4 represent the four VRAM banks A0, A1, B0, and
          * B1.
