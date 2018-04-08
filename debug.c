@@ -2,9 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "vdp2.h"
-
 #include "debug.h"
+
+#include "vdp2.h"
+#include "math.h"
 
 #ifdef DEBUG
 char *
@@ -73,34 +74,67 @@ debug_print_pattern(uint32_t pv)
 char *
 debug_print_cell_format(const struct scrn_cell_format *config __unused)
 {
-        static const char *background_names[] __unused = {
+        static const char *scroll_screen_names[] __unused = {
                 "NBG0",
                 "NBG1",
+                "NBG2",
                 "NBG3",
-                "NBG4",
                 "RGB0",
                 "RGB1",
                 NULL
         };
 
-        static const char *ccc_names[] __unused = {
-                "16 (palette)",
-                "256 (palette)",
-                "2,048 (palette)",
-                "32,768 (RGB)",
-                "16,770,000 (RGB)",
+        static const char *cc_count_names[] __unused = {
+                "16 colors (palette)",
+                "256 colors (palette)",
+                "2,048 colors (palette)",
+                "32,768 colors (RGB)",
+                "16,770,000 colors (RGB)",
                 NULL,
+        };
+
+        static const char *reduction_names[] __unused = {
+                "1 reduction",
+                "1/2 reduction",
+                "1/4 reduction",
+                NULL
         };
 
         char *output_buffer;
 
-        /* Two lines plus extra newline and NUL byte */
+        /* XXX: Hard coded for now */
         uint32_t bytes;
-        bytes = 0 + 1 + 1;
+        bytes = 2048;
 
         output_buffer = malloc(bytes);
         assert(output_buffer != NULL);
         memset(output_buffer, '\0', bytes);
+
+        (void)sprintf(output_buffer,
+            "\n"
+            "scf_scroll_screen: %s\n"
+            "     scf_cc_count: %s\n"
+            "     scf_cp_table: 0x%08X\n"
+            "    scf_reduction: %s\n"
+            "  scf_map.plane_a: 0x%08X (bank %i)\n"
+            "  scf_map.plane_b: 0x%08X (bank %i)\n"
+            "  scf_map.plane_c: 0x%08X (bank %i)\n"
+            "  scf_map.plane_d: 0x%08X (bank %i)\n"
+            "\n"
+            "  priv_pnd_bitmap: 0x%02X\n",
+            scroll_screen_names[log2_pow2(config->scf_scroll_screen)],
+            cc_count_names[config->scf_cc_count],
+            config->scf_cp_table,
+            reduction_names[config->scf_reduction],
+            config->scf_map.plane_a,
+            VRAM_BANK_4MBIT(config->scf_map.plane_a),
+            config->scf_map.plane_b,
+            VRAM_BANK_4MBIT(config->scf_map.plane_b),
+            config->scf_map.plane_c,
+            VRAM_BANK_4MBIT(config->scf_map.plane_c),
+            config->scf_map.plane_d,
+            VRAM_BANK_4MBIT(config->scf_map.plane_d),
+            config->priv_pnd_bitmap);
 
         return output_buffer;
 }

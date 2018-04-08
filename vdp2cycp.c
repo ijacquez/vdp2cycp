@@ -7,6 +7,8 @@
 #include <byteswap.h>
 
 #include "vdp2cycp.h"
+
+#include "math.h"
 #include "debug.h"
 
 /* Table representing number of VRAM accesses required for pattern name
@@ -135,6 +137,10 @@ main(int argc __unused, char *argv[] __unused)
         struct scrn_cell_format configs[4];
         memset(&configs, 0x00, sizeof(configs));
         union vram_cycp vram_cycp;
+
+        configs[0].scf_scroll_screen = SCRN_NBG0;
+
+        DEBUG_CELL_FORMAT(&configs[0]);
 
         vdp2cycp(SCRN_NBG0, configs, &vram_cycp);
 

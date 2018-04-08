@@ -18,6 +18,7 @@ CFLAGS:= -O2 \
 LDFLAGS:=
 
 SRCS:= vdp2cycp.c \
+	math.c \
 	debug.c
 INCLUDES:= /usr/include /usr/local/include
 LIB_DIRS:= /usr/local/lib
