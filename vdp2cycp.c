@@ -5,7 +5,7 @@
 #include <string.h>
 #include <byteswap.h>
 
-#include "vdp2.h"
+#include "vdp2cycp.h"
 #include "debug.h"
 
 #ifdef DEBUG
@@ -18,58 +18,6 @@
 #else
 #define DEBUG_PATTERN(...)
 #endif /* DEBUG */
-
-/*
- * General guideline for number of accesses required
- *
- *   1 - Pattern name data (1-word or 2-words)
- *   1 - 16-color character pattern or bitmapped data
- *   2 - 256-color character pattern or bitmapped data
- *   4 - 2048-color character pattern or bitmapped data
- *   4 - 32K-color character pattern or bitmapped data
- *   8 - 16M-color character pattern or bitmapped data
- *   1 - Vertical cell scroll table data
- */
-
-#define VRAM_CTL_CYCP_PNDR_NBG0         0x0 /* NBG0 pattern name data read */
-#define VRAM_CTL_CYCP_PNDR_NBG1         0x1 /* NBG1 pattern name data read */
-#define VRAM_CTL_CYCP_PNDR_NBG2         0x2 /* NBG2 pattern name data read */
-#define VRAM_CTL_CYCP_PNDR_NBG3         0x3 /* NBG3 pattern name data read */
-#define VRAM_CTL_CYCP_CHPNDR_NBG0       0x4 /* NBG0 character pattern name data read */
-#define VRAM_CTL_CYCP_CHPNDR_NBG1       0x5 /* NBG1 character pattern name data read */
-#define VRAM_CTL_CYCP_CHPNDR_NBG2       0x6 /* NBG2 character pattern name data read */
-#define VRAM_CTL_CYCP_CHPNDR_NBG3       0x7 /* NBG3 character pattern name data read */
-#define VRAM_CTL_CYCP_VCSTDR_NBG0       0xC /* NBG0 vertical cell scroll table data read */
-#define VRAM_CTL_CYCP_VCSTDR_NBG1       0xD /* NBG0 vertical cell scroll table data read */
-#define VRAM_CTL_CYCP_CPU_RW            0xE /* CPU read/write */
-#define VRAM_CTL_CYCP_NO_ACCESS         0xF /* No access */
-
-#define VRAM_CTL_CYCP_TIMING_BIT(x)     (((x) & 0x7) << 2)
-#define VRAM_CTL_CYCP_TIMING_MASK(x)    ((0x0000000F) << VRAM_CTL_CYCP_TIMING_BIT(x))
-
-#define VRAM_CTL_CYCP_TIMING_VALUE(pv, x)                                      \
-        (((uint32_t)(pv) & VRAM_CTL_CYCP_TIMING_MASK(x)) >> VRAM_CTL_CYCP_TIMING_BIT(x))
-
-typedef union {
-        /*-
-         * To byte swap (Big-endian):
-         *
-         * __bswap_32(t1.pv[0])
-         */
-
-        uint32_t pv[4]; /* VRAM cycle pattern value */
-
-        struct {
-                unsigned int t0:4; /* Timing T0 */
-                unsigned int t1:4; /* Timing T1 */
-                unsigned int t2:4; /* Timing T2 */
-                unsigned int t3:4; /* Timing T3 */
-                unsigned int t4:4; /* Timing T4 */
-                unsigned int t5:4; /* Timing T5 */
-                unsigned int t6:4; /* Timing T6 */
-                unsigned int t7:4; /* Timing T7 */
-        } __packed pt[4];
-} vram_cycp;
 
 static const char *_timing_mnemonics[] __unused = {
         "PNDR_NBG0",    /* 0x0 */
@@ -98,6 +46,39 @@ static char *debug_print_pattern(uint32_t) __unused;
 int
 main(int argc __unused, char *argv[] __unused)
 {
+        return 0;
+}
+
+/*-
+ * Calculate VDP2 VRAM cycle patterns given selected VDP2 screens SCRNS.
+ *
+ * If successful, 0 is returned. Otherwise a negative value is returned
+ * for the following cases:
+ *
+ *   - P is NULL
+ *   - SCRNS has an invalid screen
+ *   - Case 3
+ *   - Case 4
+ *   - Case 5
+ *   - Case 6
+ *   - Case 7
+ *   - Case 8
+ */
+int
+vdp2cycp(uint32_t scrns __unused, vram_cycp *p __unused)
+{
+        if (p == NULL) {
+                return -1;
+        }
+
+        if (scrns == 0x00000000) {
+                return -1;
+        }
+
+        if ((scrns & 0xFFFFFFC0) != 0x00000000) {
+                return -1;
+        }
+
         return 0;
 }
 
