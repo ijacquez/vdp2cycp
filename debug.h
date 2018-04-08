@@ -23,4 +23,16 @@
 #define DEBUG_PRINTF(x...)
 #endif /* DEBUG */
 
+#ifdef DEBUG
+#define DEBUG_PATTERN(pv) do {                                                 \
+        char *debug_print_pattern(uint32_t);                                   \
+        char *_output_buffer;                                                  \
+        _output_buffer = debug_print_pattern(pv);                              \
+        DEBUG_PRINTF("%s", _output_buffer);                                    \
+        free(_output_buffer);                                                  \
+} while (false)
+#else
+#define DEBUG_PATTERN(...)
+#endif /* DEBUG */
+
 #endif /* !DEBUG_H_ */

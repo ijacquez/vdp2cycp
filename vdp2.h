@@ -8,6 +8,8 @@
 #ifndef VDP2_H_
 #define VDP2_H_
 
+#include <stdint.h>
+
 #define SCRN_NBG0               (1 << 0) /* Normal background (NBG0) */
 #define SCRN_RBG1               (1 << 5) /* Rotational background (RBG1) */
 #define SCRN_NBG1               (1 << 1) /* Normal background (NBG1) */

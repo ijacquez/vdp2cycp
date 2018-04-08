@@ -9,41 +9,6 @@
 #include "vdp2cycp.h"
 #include "debug.h"
 
-#ifdef DEBUG
-#define DEBUG_PATTERN(pv) do {                                                 \
-        char *_output_buffer;                                                  \
-        _output_buffer = debug_print_pattern(pv);                              \
-        DEBUG_PRINTF("%s", _output_buffer);                                    \
-        free(_output_buffer);                                                  \
-} while (false)
-#else
-#define DEBUG_PATTERN(...)
-#endif /* DEBUG */
-
-static const char *_timing_mnemonics[] __unused = {
-        "PNDR_NBG0",    /* 0x0 */
-        "PNDR_NBG1",    /* 0x1 */
-        "PNDR_NBG2",    /* 0x2 */
-        "PNDR_NBG3",    /* 0x3 */
-        "CHPNDR_NBG0",  /* 0x4 */
-        "CHPNDR_NBG1",  /* 0x5 */
-        "CHPNDR_NBG2",  /* 0x6 */
-        "CHPNDR_NBG3",  /* 0x7 */
-        "---",
-        "---",
-        "---",
-        "---",
-        "VCSTDR_NBG0",  /* 0xC */
-        "VCSTDR_NBG1",  /* 0xD */
-        "CPU_RW",       /* 0xE */
-        "NO_ACCESS",    /* 0xF */
-        NULL
-};
-
-#ifdef DEBUG
-static char *debug_print_pattern(uint32_t) __unused;
-#endif /* DEBUG */
-
 /* Table representing number of VRAM accesses required for pattern name
  * data. */
 static const int8_t _timing_count_pnd[2][3] = {
@@ -153,8 +118,8 @@ static const uint8_t _timing_range_vcs[2] = {
         0x07
 };
 
-static int pnd_bitmap_calculate(struct scrn_cell_format *);
-static bool pnd_bitmap_validate(uint16_t, uint8_t);
+static int pnd_bitmap_calculate(struct scrn_cell_format *) __unused;
+static bool pnd_bitmap_validate(uint16_t, uint8_t) __unused;
 
 int
 main(int argc __unused, char *argv[] __unused)
@@ -178,8 +143,6 @@ main(int argc __unused, char *argv[] __unused)
         /* config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000); */
         /* config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000); */
         /* config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000); */
-
-        /* pnd_bitmap_validate(0x0300, bitmap); */
 
         return 0;
 }
@@ -228,17 +191,18 @@ vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp
         // XXX: Is there a restriction as to where VCST can be stored?
 
         /* Determine how many PND access timings are needed (due to reduction) */
-
         /* Allocate PND access timing and store timing */
 
         // XXX: For example, If 1/4 reduction is used, PNDT should be on
-        //      different banks, as well as VCST
+        //      different banks, as well as VCST because there just
+        //      isn't enough access timings available. 1/4 reduction
+        //      requires 4.
 
         /* Use timing from PND to determine range where CPD access
          * timing should be and allocate */
 
         // XXX: Allocation function should take in a mask on the "constraint"
-        // XXX: Allocation function should take which bank
+        // XXX: Allocation function should take which bank to allocate access timing on
 
         return 0;
 }
@@ -373,6 +337,9 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
          * +-------+-------------------+--------------+
          */
 
+#define VALIDATE_BITMAP(bitmap, bank, i)                                       \
+        ((((uint8_t)(bitmap) & pnd_bank_mask[(bank)][1 + (i)]) != 0x00))
+
         static const uint8_t pnd_bank_mask[4][5] = {
                 {
                         2, /* Count */
@@ -408,59 +375,16 @@ pnd_bitmap_validate(uint16_t ramctl, uint8_t bitmap)
         uint32_t mask_count;
         mask_count = pnd_bank_mask[bank][0];
 
+        bool valid;
+        valid = false;
+
         uint32_t i;
         for (i = 0; i < (mask_count / 2); i++) {
-                if ((bitmap & pnd_bank_mask[bank][1 + i]) != 0x00) {
-                        return false;
-                }
-
-                if ((bitmap & pnd_bank_mask[bank][2 + i]) != 0x00) {
-                        return false;
-                }
+                valid = valid || VALIDATE_BITMAP(bitmap, bank, i);
+                valid = valid || VALIDATE_BITMAP(bitmap, bank, i + 1);
         }
 
-        return true;
+        return valid;
+
+#undef VALIDATE_BITMAP
 }
-
-#ifdef DEBUG
-static char *
-debug_print_pattern(uint32_t pv)
-{
-        char *output_buffer;
-
-        /* Header: 8 strings of length 11, each spaced out (7 spaces), plus newline*/
-        uint32_t line;
-        line = (8 * 11) + 7 + 1;
-
-        /* Two lines plus extra newline and NUL byte */
-        uint32_t bytes;
-        bytes = (2 * line) + 1 + 1;
-
-        output_buffer = malloc(bytes);
-        assert(output_buffer != NULL);
-        memset(output_buffer, '\0', bytes);
-
-        (void)sprintf(output_buffer,
-            "\n"
-            "%-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s\n"
-            "%-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s\n",
-            "T7",
-            "T6",
-            "T5",
-            "T4",
-            "T3",
-            "T2",
-            "T1",
-            "T0",
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 7)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 6)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 5)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 4)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 3)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 2)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 1)],
-            _timing_mnemonics[VRAM_CTL_CYCP_TIMING_VALUE(pv, 0)]);
-
-        return output_buffer;
-}
-#endif /* DEBUG */
