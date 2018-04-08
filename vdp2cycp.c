@@ -205,7 +205,7 @@ main(int argc __unused, char *argv[] __unused)
  *   - Case 8
  */
 int
-vdp2cycp(uint32_t scrns __unused, const struct scrn_cell_format *configs, union vram_cycp *vram_cycp __unused)
+vdp2cycp(uint32_t scrns, const struct scrn_cell_format *configs, union vram_cycp *vram_cycp)
 {
         if (vram_cycp == NULL) {
                 return -1;
@@ -222,6 +222,28 @@ vdp2cycp(uint32_t scrns __unused, const struct scrn_cell_format *configs, union 
         if ((scrns & 0xFFFFFFC0) != 0x00000000) {
                 return -1;
         }
+
+        /* Loop through every screen and calculate PND bitmap. Bitwise OR
+         * it and validate it */
+
+        /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
+
+        /* Determine if VCS is being used for NBG0 and/or NBG1? */
+        // XXX: Determine in which VRAM bank VCST is stored in
+        // XXX: Is there a restriction as to where VCST can be stored?
+
+        /* Determine how many PND access timings are needed (due to reduction) */
+
+        /* Allocate PND access timing and store timing */
+
+        // XXX: For example, If 1/4 reduction is used, PNDT should be on
+        //      different banks, as well as VCST
+
+        /* Use timing from PND to determine range where CPD access
+         * timing should be and allocate */
+
+        // XXX: Allocation function should take in a mask on the "constraint"
+        // XXX: Allocation function should take which bank
 
         return 0;
 }
