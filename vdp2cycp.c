@@ -5,6 +5,7 @@
 #include <string.h>
 #include <byteswap.h>
 
+#include "vdp2.h"
 #include "debug.h"
 
 #ifdef DEBUG
@@ -91,15 +92,12 @@ static const char *_timing_mnemonics[] __unused = {
 };
 
 #ifdef DEBUG
-static char *debug_print_pattern(uint32_t);
+static char *debug_print_pattern(uint32_t) __unused;
 #endif /* DEBUG */
 
 int
 main(int argc __unused, char *argv[] __unused)
 {
-        DEBUG_PATTERN(0x01234567);
-        DEBUG_PATTERN(0x0123CDEF);
-
         return 0;
 }
 
