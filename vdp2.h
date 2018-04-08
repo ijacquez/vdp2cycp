@@ -32,11 +32,36 @@
 #define VRAM_BANK_4MBIT(x)      (((x) >> 17) & 0x0007)
 
 struct scrn_cell_format {
-        uint32_t scf_scroll_screen; /* Normal/rotational background */
-        uint32_t scf_cc_count; /* Character color count */
-        uint32_t scf_cp_table; /* Character pattern table lead address*/
+        uint8_t scf_scroll_screen;      /* Normal/rotational background */
+        uint8_t scf_cc_count;           /* Character color count */
+        uint8_t scf_character_size;     /* Character size: (1 * 1) or (2 * 2) cells */
+        uint8_t scf_pnd_size;           /* Pattern name data size:
+                                         * (1)-word
+                                         * (2)-words */
+        uint8_t scf_auxiliary_mode;     /* Auxiliary mode #0 (flip function)
+                                         * auxiliary mode #1 (no flip function) */
 
-        uint32_t scf_reduction; /* Background reduction */
+        uint32_t scf_cp_table;          /* Character pattern table lead address */
+        uint32_t scf_color_palette;     /* Color palette lead address */
+
+        uint32_t scf_vcs_table;         /* Vertical cell scroll table lead address */
+
+        uint8_t scf_reduction;          /* Background reduction
+                                         * 1
+                                         * 1/2 reduction
+                                         * 1/4 reduction */
+
+        uint8_t scf_plane_size;         /* Plane size (1 * 1)
+                                         * Plane size (2 * 1)
+                                         * Plane size (2 * 2) */
+
+        uint8_t scf_rp_mode;            /* RBG0 and RBG1 only
+                                         *
+                                         * Rotation parameter mode
+                                         *   Mode 0: Rotation Parameter A
+                                         *   Mode 1: Rotation Parameter B
+                                         *   Mode 2: Swap Coefficient Data Read
+                                         *   Mode 3: Swap via Rotation Parameter Window */
 
         union {
                 uint32_t planes[16];
@@ -59,7 +84,7 @@ struct scrn_cell_format {
                         uint32_t plane_o; /* For RBG0 and RBG1 use only */
                         uint32_t plane_p; /* For RBG0 and RBG1 use only */
                 } __packed;
-        } scf_map; /* Map lead addresses */
+        } scf_map;                      /* Map lead addresses */
 
         uint8_t priv_pnd_bitmap; /* Holds the pattern name data bitmap */
 };

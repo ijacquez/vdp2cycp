@@ -100,6 +100,13 @@ debug_print_cell_format(const struct scrn_cell_format *config __unused)
                 NULL
         };
 
+        static const char *pnd_size_names[] __unused = {
+                "Invalid",
+                "1-word",
+                "2-words",
+                NULL
+        };
+
         char *output_buffer;
 
         /* XXX: Hard coded for now */
@@ -114,7 +121,9 @@ debug_print_cell_format(const struct scrn_cell_format *config __unused)
             "\n"
             "scf_scroll_screen: %s\n"
             "     scf_cc_count: %s\n"
+            "     scf_pnd_size: %s\n"
             "     scf_cp_table: 0x%08X\n"
+            "    scf_vcs_table: 0x%08X\n"
             "    scf_reduction: %s\n"
             "  scf_map.plane_a: 0x%08X (bank %i)\n"
             "  scf_map.plane_b: 0x%08X (bank %i)\n"
@@ -124,7 +133,9 @@ debug_print_cell_format(const struct scrn_cell_format *config __unused)
             "  priv_pnd_bitmap: 0x%02X\n",
             scroll_screen_names[log2_pow2(config->scf_scroll_screen)],
             cc_count_names[config->scf_cc_count],
+            pnd_size_names[config->scf_pnd_size],
             config->scf_cp_table,
+            config->scf_vcs_table,
             reduction_names[config->scf_reduction],
             config->scf_map.plane_a,
             VRAM_BANK_4MBIT(config->scf_map.plane_a),
