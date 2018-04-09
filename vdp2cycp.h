@@ -14,8 +14,10 @@
 #include "vdp2.h"
 
 struct state {
-        /* XXX: Place holder */
+        /* XXX: Place holder { */
         uint16_t ramctl;
+        union vram_cycp vram_cycp;
+        /* } */
 
         struct scrn_format *cell_configs[SCRN_COUNT];
         uint8_t cell_count;
@@ -24,6 +26,6 @@ struct state {
         uint8_t bitmap_count;
 };
 
-int vdp2cycp(struct state *, uint8_t, union vram_cycp *);
+int vdp2cycp(struct state *);
 
 #endif /* !VDP2CYCP_H_ */

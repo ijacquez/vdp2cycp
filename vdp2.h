@@ -10,12 +10,13 @@
 
 #include <stdint.h>
 
-#define SCRN_NBG0               (1 << 0) /* Normal background (NBG0) */
-#define SCRN_RBG1               (1 << 5) /* Rotational background (RBG1) */
-#define SCRN_NBG1               (1 << 1) /* Normal background (NBG1) */
-#define SCRN_NBG2               (1 << 2) /* Normal background (NBG2) */
-#define SCRN_NBG3               (1 << 3) /* Normal background (NBG3) */
-#define SCRN_RBG0               (1 << 4) /* Rotational background (RBG0) */
+#define SCRN_NBG0               (1 << 0) /* Normal background */
+#define SCRN_RBG1               (1 << 5) /* Rotational background */
+#define SCRN_NBG1               (1 << 1) /* Normal background */
+#define SCRN_EXBG               (1 << 1) /* External input screen  */
+#define SCRN_NBG2               (1 << 2) /* Normal background */
+#define SCRN_NBG3               (1 << 3) /* Normal background */
+#define SCRN_RBG0               (1 << 4) /* Rotational background */
 #define SCRN_COUNT              4
 
 #define SCRN_FORMAT_INVALID     0
@@ -36,11 +37,16 @@
 
 #define VRAM_BANK_4MBIT(x)      (((x) >> 17) & 0x0007)
 
+#define VRAM_BANK_ADDRESS(x)    ((((x) >> 20) & 0x00FF) == 0x5E)
+
 struct scrn_format {
         uint8_t sf_scroll_screen;       /* Normal/rotational background */
         uint8_t sf_format;              /* Cell format
                                          * Bitmap format */
         uint8_t sf_cc_count;            /* Character color count */
+
+        bool sf_cpu_access;             /* CPU access during screen
+                                         * display interval is needed*/
 
         void *sf_config;
 };
