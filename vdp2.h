@@ -37,6 +37,7 @@
 
 #define VRAM_BANK_4MBIT(x)      (((x) >> 17) & 0x0007)
 
+/* Determine if address is in VDP2 VRAM */
 #define VRAM_BANK_ADDRESS(x)    ((((x) >> 20) & 0x00FF) == 0x5E)
 
 struct scrn_format {
@@ -129,18 +130,6 @@ struct scrn_cell_format {
         uint8_t priv_pnd_bitmap; /* Holds the pattern name data bitmap */
 };
 
-/*-
- * General guideline for number of accesses required
- *
- *   1 - Pattern name data (1-word or 2-words)
- *   1 - 16-color character pattern or bitmapped data
- *   2 - 256-color character pattern or bitmapped data
- *   4 - 2048-color character pattern or bitmapped data
- *   4 - 32K-color character pattern or bitmapped data
- *   8 - 16M-color character pattern or bitmapped data
- *   1 - Vertical cell scroll table data
- */
-
 #define VRAM_CTL_CYCP_PNDR_NBG0         0x0 /* NBG0 pattern name data read */
 #define VRAM_CTL_CYCP_PNDR_NBG1         0x1 /* NBG1 pattern name data read */
 #define VRAM_CTL_CYCP_PNDR_NBG2         0x2 /* NBG2 pattern name data read */
@@ -150,17 +139,17 @@ struct scrn_cell_format {
 #define VRAM_CTL_CYCP_CHPNDR_NBG2       0x6 /* NBG2 character pattern name data read */
 #define VRAM_CTL_CYCP_CHPNDR_NBG3       0x7 /* NBG3 character pattern name data read */
 #define VRAM_CTL_CYCP_VCSTDR_NBG0       0xC /* NBG0 vertical cell scroll table data read */
-#define VRAM_CTL_CYCP_VCSTDR_NBG1       0xD /* NBG0 vertical cell scroll table data read */
+#define VRAM_CTL_CYCP_VCSTDR_NBG1       0xD /* NBG1 vertical cell scroll table data read */
 #define VRAM_CTL_CYCP_CPU_RW            0xE /* CPU read/write */
 #define VRAM_CTL_CYCP_NO_ACCESS         0xF /* No access */
 
 /* Calculate starting bit for T */
 #define VRAM_CTL_CYCP_TIMING_BIT(x)     (((x) & 0x7) << 2)
 
-/* Calculate timing mask for T */
+/* Calculate 32-bit timing mask for T */
 #define VRAM_CTL_CYCP_TIMING_MASK(t)    ((0x0000000F) << VRAM_CTL_CYCP_TIMING_BIT(t))
 
-/* Extract timing value T */
+/* Extract timing value T from raw 32-bit cycle pattern value */
 #define VRAM_CTL_CYCP_TIMING_VALUE(pv, t)                                      \
         (((uint32_t)(pv) & VRAM_CTL_CYCP_TIMING_MASK(t)) >> VRAM_CTL_CYCP_TIMING_BIT(t))
 
