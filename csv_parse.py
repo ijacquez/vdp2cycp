@@ -1,7 +1,8 @@
 import csv
-import sys
 import os
 import struct
+import sys
+import re
 
 PROGNAME = os.path.basename(sys.argv[0])
 
@@ -114,14 +115,15 @@ class SCRNCellFormat:
             raise ValueError("Cannot convert to a valid vertical cell scroll table address")
 
     def _parse_reduction(self, value):
-        pass
+        print value
+        if not re.match(r"(?:^1$)|(?:^1\s*/\s*2$)|(?:^1\s*/\s*4$)", value):
+            raise ValueError("Cannot parse reduction value")
 
-class SCRNCellFormat:
+class SCRNBitmapFormat:
     def __init__(self, *args):
         self.scroll_screen = args[0]
 
-s = SCRNCellFormat("NBG2", "cell", "16", "1", "0", "0x25E00000", "0x25F80000", "0x00000000", "1")
-sys.exit(1)
+s = SCRNCellFormat("NBG2", "cell", "16", "1", "0", "0x25E00000", "0x25F80000", "0x00000000", "1/2","0x0","0x0","0x0","0x0")
 
 with open(sys.argv[2], "w+") as ofp:
     try:
