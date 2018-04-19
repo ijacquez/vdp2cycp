@@ -62,7 +62,7 @@ PLANE_SIZES = {
     "2x2": "2 * 2"
 }
 
-class SCRNFormat:
+class SCRNFormat(object):
     def __init__(self, name, *args):
         try:
             self._name = self._trim(name)
@@ -71,76 +71,38 @@ class SCRNFormat:
             self.scroll_screen = self._parse_scroll_screen(args[0])
             self.format = self._parse_format(args[1])
             self.cc_count = self._parse_cc_count(args[2])
-            self.character_size = self._parse_character_size(args[3])
-            self.pnd_size = self._parse_pnd_size(args[4])
-            self.auxiliary_mode = self._parse_auxiliary_mode(args[5])
-            self.cp_table = self._parse_cp_table(args[6])
-            self.color_palette = self._parse_color_palette(args[7])
-            self.vcs_table = self._parse_vcs_table(args[8])
-            self.reduction = self._parse_reduction(args[9])
-            self.plane_size = self._parse_plane_size(args[10])
-            self.plane_a = self._parse_plane(args[11])
-            self.plane_b = self._parse_plane(args[12])
-            self.plane_c = self._parse_plane(args[13])
-            self.plane_d = self._parse_plane(args[14])
         except IndexError:
-            raise ValueError("Invalid arguments")
+            raise ValueError("Invalid arguments for SCRNFormat")
 
-    def __str__ (self):
-        format = ""
-        if self._format == "cell":
-            format += """static const struct scrn_cell_format _%s_%s_config = {
-        .scf_character_size = %s,
-        .scf_pnd_size = %s,
-        .scf_auxiliary_mode = %s,
-        .scf_cp_table = %s,
-        .scf_color_palette = %s,
-        .scf_vcs_table = %s,
-        .scf_reduction = %s,
-        .scf_plane_size = %s,
-        .scf_map.plane_a = %s,
-        .scf_map.plane_b = %s,
-        .scf_map.plane_c = %s,
-        .scf_map.plane_d = %s
-};
-""" % (self._name,
-         self._format,
-         self.character_size,
-         self.pnd_size,
-         self.auxiliary_mode,
-         self.cp_table,
-         self.color_palette,
-         self.vcs_table,
-         self.reduction,
-         self.plane_size,
-         self.plane_a,
-         self.plane_b,
-         self.plane_c,
-         self.plane_d)
-        elif self._format == "bitmap":
-            format += """static const struct scrn_bitmap_format _%s_%s_config = {
-};
-""" % (self._name,
-         self._format)
-        format += """
-static const struct scrn_format _%s_config = {
+    def __str__(self):
+        return """static const struct scrn_format _%s_format = {
         .sf_scroll_screen = %s,
         .sf_format = %s,
         .sf_cc_count = %s,
-        .sf_config = &%s_%s_config
-};""" % (self._name,
+        .sf_format = &%s_%s_format
+};
+""" % (self._name,
         self.scroll_screen,
         self.format,
         self.cc_count,
         self._name,
         self._format)
-        return format
 
-    def _trim(self, value):
-        pattern = re.compile(r'\s+')
-        return re.sub(pattern, '', value)
+    @staticmethod
+    def factory(name, *args):
+        format = SCRNFormat._trim(args[1]).lower()
+        if format == "cell":
+            return SCRNCellFormat(name, *args)
+        elif format == "bitmap":
+            return SCRNBitmapFormat(name, *args)
+        raise ValueError("Invalid format specified: %s" % (", ".join(["cell", "bitmap"])))
 
-    def _parse(self, value, kvmap):
+    @staticmethod
+    def _trim(value):
+        pattern = re.compile(r"\s+")
+        return re.sub(pattern, "", value)
+
+    def _parse_map(self, value, kvmap):
         try:
             svalue = self._trim(value)
             return kvmap[svalue]
@@ -160,22 +122,72 @@ static const struct scrn_format _%s_config = {
         return ("0x%08X" % (ivalue))
 
     def _parse_scroll_screen(self, value):
-        return self._parse(value, SCROLL_SCREENS)
+        return self._parse_map(value, SCROLL_SCREENS)
 
     def _parse_format(self, value):
-        return self._parse(value, FORMATS)
+        return self._parse_map(value, FORMATS)
 
     def _parse_cc_count(self, value):
-        return self._parse(value, CCC)
+        return self._parse_map(value, CCC)
+################################################################################
+class SCRNCellFormat(SCRNFormat):
+    def __init__(self, name, *args):
+        super(SCRNCellFormat, self).__init__(name, *args)
+        try:
+            self.character_size = self._parse_character_size(args[3])
+            self.pnd_size = self._parse_pnd_size(args[4])
+            self.auxiliary_mode = self._parse_auxiliary_mode(args[5])
+            self.cp_table = self._parse_cp_table(args[6])
+            self.color_palette = self._parse_color_palette(args[7])
+            self.vcs_table = self._parse_vcs_table(args[8])
+            self.reduction = self._parse_reduction(args[9])
+            self.plane_size = self._parse_plane_size(args[10])
+            self.plane_a = self._parse_plane(args[11])
+            self.plane_b = self._parse_plane(args[12])
+            self.plane_c = self._parse_plane(args[13])
+            self.plane_d = self._parse_plane(args[14])
+        except IndexError:
+            raise ValueError("Invalid arguments for SCRNCellFormat")
+
+    def __str__(self):
+        return super(SCRNCellFormat, self).__str__() + \
+        """
+static const struct scrn_cell_format _%s_%s_format = {
+        .scf_character_size = %s,
+        .scf_pnd_size = %s,
+        .scf_auxiliary_mode = %s,
+        .scf_cp_table = %s,
+        .scf_color_palette = %s,
+        .scf_vcs_table = %s,
+        .scf_reduction = %s,
+        .scf_plane_size = %s,
+        .scf_map.plane_a = %s,
+        .scf_map.plane_b = %s,
+        .scf_map.plane_c = %s,
+        .scf_map.plane_d = %s
+};""" % (self._name,
+         self._format,
+         self.character_size,
+         self.pnd_size,
+         self.auxiliary_mode,
+         self.cp_table,
+         self.color_palette,
+         self.vcs_table,
+         self.reduction,
+         self.plane_size,
+         self.plane_a,
+         self.plane_b,
+         self.plane_c,
+         self.plane_d)
 
     def _parse_character_size(self, value):
-        return self._parse(value, CHARACTER_SIZES)
+        return self._parse_map(value, CHARACTER_SIZES)
 
     def _parse_pnd_size(self, value):
-        return self._parse(value, PND)
+        return self._parse_map(value, PND)
 
     def _parse_auxiliary_mode(self, value):
-        return self._parse(value, AUXILIARY_MODES)
+        return self._parse_map(value, AUXILIARY_MODES)
 
     def _parse_cp_table(self, value):
         return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
@@ -187,18 +199,37 @@ static const struct scrn_format _%s_config = {
         # Special case
         ivalue = self._parse_hex(value)
         if ivalue == 0x00000000:
-            return value
+            return ("0x%08X" % (ivalue))
         return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
 
     def _parse_reduction(self, value):
-        return self._parse(value, REDUCTIONS)
+        return self._parse_map(value, REDUCTIONS)
 
     def _parse_plane_size(self, value):
-        return self._parse(value, PLANE_SIZES)
+        return self._parse_map(value, PLANE_SIZES)
 
     def _parse_plane(self, value):
         return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
+################################################################################
+class SCRNBitmapFormat(SCRNFormat):
+    def __init__(self, name, *args):
+        super(SCRNBitmapFormat, self).__init__(name, *args)
+        try:
+            pass
+        except IndexError:
+            raise ValueError("Invalid arguments for SCRNBitmapFormat")
 
+    def __str__(self):
+        return super(SCRNBitmapFormat, self).__str__() + \
+        """
+static const struct scrn_bitmap_format _%s_%s_format = {
+        .sbf_bitmap_size.width = 512,
+        .sbf_bitmap_size.height = 256,
+        .sbf_color_palette = 0x00000000,
+        .sbf_bitmap_pattern = 0x00000000
+};""" % (self._name,
+         self._format)
+################################################################################
 def convert_filename(filename):
     return os.path.splitext(filename)[0].replace(".", "_") \
                                         .replace(" ", "_")
@@ -206,8 +237,7 @@ def convert_filename(filename):
 csv_count = len(sys.argv[1:])
 idx = 0
 
-print """#include "vdp2.h"
-"""
+print "#include \"vdp2.h\"\n"
 
 csv_file = sys.argv[1]
 try:
@@ -227,7 +257,7 @@ try:
             row_idx += 1
             name = "%s_%04i" % (convert_filename(csv_file), idx)
             config_names.append(name)
-            scrn = SCRNFormat(name, *row)
+            scrn = SCRNFormat.factory(name, *row)
             if (row_idx > 1) and (row_idx <= row_count):
                 print
             print scrn
