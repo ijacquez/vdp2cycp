@@ -13,6 +13,12 @@ if len(sys.argv[1:]) != 1:
     usage()
     sys.exit(2)
 
+CRAM_START = 0x05F00000
+CRAM_END = 0x05F7FFFF
+
+VRAM_START = 0x05E00000
+VRAM_END = 0x05EFFFFF
+
 SCROLL_SCREENS = {
     "NBG0": "SCRN_NBG0",
     "NBG1": "SCRN_NBG1",
@@ -115,8 +121,11 @@ class SCRNFormat(object):
         except ValueError:
             raise ValueError("Cannot convert to a valid address")
 
-    def _parse_address_range(self, value, from_addr, to_addr):
+    def _parse_address_range(self, value, from_addr, to_addr, initial_value = None):
         ivalue = self._parse_hex(value)
+        if (initial_value is not None) and (ivalue == initial_value):
+            return ("0x%08X" % (ivalue))
+        ivalue &= 0x0FFFFFFF
         if (ivalue < from_addr) or (ivalue > to_addr):
             raise ValueError("Address 0x%08X is not within range 0x%08X:0x%08X" % (ivalue, from_addr, to_addr))
         return ("0x%08X" % (ivalue))
@@ -136,9 +145,9 @@ class SCRNCellFormat(SCRNFormat):
         try:
             self.character_size = self._parse_character_size(args[3])
             self.pnd_size = self._parse_pnd_size(args[4])
-            self.auxiliary_mode = self._parse_auxiliary_mode(args[5])
-            self.cp_table = self._parse_cp_table(args[6])
-            self.color_palette = self._parse_color_palette(args[7])
+            self.cp_table = self._parse_cp_table(args[5])
+            self.color_palette = self._parse_color_palette(args[6])
+            self.auxiliary_mode = self._parse_auxiliary_mode(args[7])
             self.vcs_table = self._parse_vcs_table(args[8])
             self.reduction = self._parse_reduction(args[9])
             self.plane_size = self._parse_plane_size(args[10])
@@ -190,17 +199,13 @@ static const struct scrn_cell_format _%s_%s_format = {
         return self._parse_map(value, AUXILIARY_MODES)
 
     def _parse_cp_table(self, value):
-        return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
+        return self._parse_address_range(value, VRAM_START, VRAM_END)
 
     def _parse_color_palette(self, value):
-        return self._parse_address_range(value, 0x25F00000, 0x25F0FFFF)
+        return self._parse_address_range(value, CRAM_START, CRAM_END)
 
     def _parse_vcs_table(self, value):
-        # Special case
-        ivalue = self._parse_hex(value)
-        if ivalue == 0x00000000:
-            return ("0x%08X" % (ivalue))
-        return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
+        return self._parse_address_range(value, VRAM_START, VRAM_END, 0x00000000)
 
     def _parse_reduction(self, value):
         return self._parse_map(value, REDUCTIONS)
@@ -209,26 +214,51 @@ static const struct scrn_cell_format _%s_%s_format = {
         return self._parse_map(value, PLANE_SIZES)
 
     def _parse_plane(self, value):
-        return self._parse_address_range(value, 0x25E00000, 0x25EFFFFF)
+        return self._parse_address_range(value, VRAM_START, VRAM_END)
 ################################################################################
 class SCRNBitmapFormat(SCRNFormat):
     def __init__(self, name, *args):
         super(SCRNBitmapFormat, self).__init__(name, *args)
         try:
-            pass
+            self.width = self._parse_width(args[3])
+            self.height = self._parse_height(args[4])
+            self.bitmap_pattern = self._parse_bitmap_pattern(args[5])
+            self.color_palette = self._parse_color_palette(args[6])
         except IndexError:
             raise ValueError("Invalid arguments for SCRNBitmapFormat")
+
+    def _parse_width(self, value):
+        ivalue = self._parse_hex(value)
+        if (ivalue != 512) and (ivalue != 1024):
+            raise ValueError("Invalid bitmap width specified")
+        return ("%i" % (ivalue))
+
+    def _parse_height(self, value):
+        ivalue = self._parse_hex(value)
+        if (ivalue != 256) and (ivalue != 512):
+            raise ValueError("Invalid bitmap height specified")
+        return ("%i" % (ivalue))
+
+    def _parse_bitmap_pattern(self, value):
+        return self._parse_address_range(value, VRAM_START, VRAM_END)
+
+    def _parse_color_palette(self, value):
+        return self._parse_address_range(value, CRAM_START, CRAM_END)
 
     def __str__(self):
         return super(SCRNBitmapFormat, self).__str__() + \
         """
 static const struct scrn_bitmap_format _%s_%s_format = {
-        .sbf_bitmap_size.width = 512,
-        .sbf_bitmap_size.height = 256,
-        .sbf_color_palette = 0x00000000,
-        .sbf_bitmap_pattern = 0x00000000
+        .sbf_bitmap_size.width = %s,
+        .sbf_bitmap_size.height = %s,
+        .sbf_bitmap_pattern = %s,
+        .sbf_color_palette = %s
 };""" % (self._name,
-         self._format)
+         self._format,
+         self.width,
+         self.height,
+         self.bitmap_pattern,
+         self.color_palette)
 ################################################################################
 def convert_filename(filename):
     return os.path.splitext(filename)[0].replace(".", "_") \
