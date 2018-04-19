@@ -237,6 +237,6 @@ except IOError as e:
 except csv.Error as e:
     print >> sys.stderr, "%s: error: File %s, line %i: %s" % (PROGNAME, csv_file, reader.line_num, e)
 print
-print """static const struct scrn_format *_%s_configs[] = {""" % (convert_filename(csv_file))
-print ",\n".join(["        &_%s_config" % (config_name) for config_name in config_names] + ["        NULL"])
+print """static const struct scrn_format *_%s_formats[] = {""" % (convert_filename(csv_file))
+print ",\n".join(["        &_%s_format" % (config_name) for config_name in config_names] + ["        NULL"])
 print """};"""
