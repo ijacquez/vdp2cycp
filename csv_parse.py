@@ -21,9 +21,9 @@ SCROLL_SCREENS = {
     "RBG1": "SCRN_RBG1"
 }
 
-FORMATS = {
-    "cell": "SCRN_FORMAT_CELL",
-    "bitmap": "SCRN_FORMAT_BITMAP"
+TYPES = {
+    "cell": "SCRN_TYPE_CELL",
+    "bitmap": "SCRN_TYPE_BITMAP"
 }
 
 CCC = {
@@ -68,7 +68,7 @@ class SCRNFormat(object):
             self._format = self._trim(args[1])
 
             self.scroll_screen = self._parse_scroll_screen(args[0])
-            self.format = self._parse_format(args[1])
+            self.format = self._parse_type(args[1])
             self.cc_count = self._parse_cc_count(args[2])
         except IndexError:
             raise ValueError("Invalid arguments for SCRNFormat")
@@ -76,8 +76,9 @@ class SCRNFormat(object):
     def __str__(self):
         return """
 static const struct scrn_format _%s_format = {
+        .sf_enable = true,
         .sf_scroll_screen = %s,
-        .sf_format = %s,
+        .sf_type = %s,
         .sf_cc_count = %s,
         .sf_format = &_%s_%s_format
 };""" % (self._name,
@@ -126,8 +127,8 @@ static const struct scrn_format _%s_format = {
     def _parse_scroll_screen(self, value):
         return self._parse_map(value, SCROLL_SCREENS)
 
-    def _parse_format(self, value):
-        return self._parse_map(value, FORMATS)
+    def _parse_type(self, value):
+        return self._parse_map(value, TYPES)
 
     def _parse_cc_count(self, value):
         return self._parse_map(value, CCC)

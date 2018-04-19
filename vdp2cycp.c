@@ -212,9 +212,9 @@ main(int argc __unused, char *argv[] __unused)
         memset(&config_nbg3, 0x00, sizeof(config_nbg3));
 
         configs[0].sf_scroll_screen = SCRN_NBG0;
-        configs[0].sf_format = SCRN_FORMAT_CELL;
+        configs[0].sf_type = SCRN_TYPE_CELL;
         configs[0].sf_cc_count = SCRN_CCC_PALETTE_16;
-        configs[0].sf_config = &config_nbg0;
+        configs[0].sf_format = &config_nbg0;
 
         config_nbg0.scf_pnd_size = 1;
         config_nbg0.scf_cp_table = VRAM_ADDR_4MBIT(0, 0x00000);
@@ -266,21 +266,21 @@ vdp2cycp(struct state *state)
                         continue;
                 }
 
-                const struct scrn_cell_format *cell_config;
-                cell_config = config->sf_config;
+                const struct scrn_cell_format *cell_format;
+                cell_format = config->sf_format;
 
                 int8_t tvcs;
                 tvcs = 0;
 
                 /* Determine if vertical cell scroll is used */
-                if (VRAM_BANK_ADDRESS(cell_config->scf_vcs_table)) {
+                if (VRAM_BANK_ADDRESS(cell_format->scf_vcs_table)) {
                         tvcs = _timings_count_vcs[config->sf_scroll_screen];
                 }
 
                 /* Determine how many PND access timings are needed (due
                  * to reduction) */
                 int8_t tpnd;
-                tpnd = _timings_count_pnd[cell_config->scf_pnd_size][cell_config->scf_reduction];
+                tpnd = _timings_count_pnd[cell_format->scf_pnd_size][cell_format->scf_reduction];
 
                 /* Invalid number of PND access timings */
                 if (tpnd < 0) {
@@ -290,7 +290,7 @@ vdp2cycp(struct state *state)
                 /* Determine how many CPD access timings are needed (due
                  * to reduction) and character color count */
                 int8_t tcpd;
-                tcpd = _timings_count_cell_cpd[config->sf_cc_count][cell_config->scf_reduction];
+                tcpd = _timings_count_cell_cpd[config->sf_cc_count][cell_format->scf_reduction];
 
                 /* Invalid number of PND access timings */
                 if (tcpd < 0) {
@@ -360,12 +360,12 @@ state_configs_build(struct state *state, struct scrn_format *configs)
                 struct scrn_format *config;
                 config = &configs[scrn];
 
-                switch (config->sf_format) {
-                case SCRN_FORMAT_CELL:
+                switch (config->sf_type) {
+                case SCRN_TYPE_CELL:
                         state->cell_configs[scrn] = config;
                         state->cell_count++;
                         break;
-                case SCRN_FORMAT_BITMAP:
+                case SCRN_TYPE_BITMAP:
                         state->bitmap_configs[scrn] = config;
                         state->bitmap_count++;
                         break;
@@ -393,18 +393,18 @@ pnd_bitmap_calculate(struct scrn_format *config)
                 return -1;
         }
 
-        if (config->sf_config == NULL) {
+        if (config->sf_format == NULL) {
                 return -1;
         }
 
-        if (config->sf_format != SCRN_FORMAT_CELL) {
+        if (config->sf_type != SCRN_TYPE_CELL) {
                 return -1;
         }
 
-        struct scrn_cell_format *cell_config;
-        cell_config = config->sf_config;
+        struct scrn_cell_format *cell_format;
+        cell_format = config->sf_format;
 
-        cell_config->priv_pnd_bitmap = 0x00;
+        cell_format->priv_pnd_bitmap = 0x00;
 
         uint8_t bank;
 
@@ -414,17 +414,17 @@ pnd_bitmap_calculate(struct scrn_format *config)
         case SCRN_NBG2:
         case SCRN_NBG3:
                 /* XXX: 4 or 8-Mbit? */
-                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[0]);
-                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[0]);
+                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[1]);
-                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[1]);
+                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[2]);
-                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[2]);
+                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[3]);
-                cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
+                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[3]);
+                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
 
                 return 0;
         case SCRN_RBG1:
@@ -432,9 +432,9 @@ pnd_bitmap_calculate(struct scrn_format *config)
                 uint32_t i;
                 for (i = 0; i < 16; i++) {
                         /* XXX: 4 or 8-Mbit? */
-                        bank = VRAM_BANK_4MBIT(cell_config->scf_map.planes[i]);
+                        bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[i]);
 
-                        cell_config->priv_pnd_bitmap |= BANK_BIT(bank);
+                        cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
                 }
         } return 0;
         default:
@@ -597,10 +597,10 @@ pnd_bitmap_validate_all(const struct state *state)
                         return false;
                 }
 
-                const struct scrn_cell_format *cell_config;
-                cell_config = config->sf_config;
+                const struct scrn_cell_format *cell_format;
+                cell_format = config->sf_format;
 
-                pnd_bitmap |= cell_config->priv_pnd_bitmap;
+                pnd_bitmap |= cell_format->priv_pnd_bitmap;
         }
 
         DEBUG_PRINTF("pnd_bitmap: 0x%02X\n", pnd_bitmap);

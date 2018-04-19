@@ -22,9 +22,9 @@
 #define SCRN_RBG0               (1 << 4) /* Rotational background */
 #define SCRN_COUNT              4
 
-#define SCRN_FORMAT_INVALID     0
-#define SCRN_FORMAT_CELL        1
-#define SCRN_FORMAT_BITMAP      2
+#define SCRN_TYPE_INVALID       0
+#define SCRN_TYPE_CELL          1
+#define SCRN_TYPE_BITMAP        2
 
 #define SCRN_REDUCTION_NONE     0 /* No reduction */
 #define SCRN_REDUCTION_HALF     1 /* 1/2 reduction */
@@ -44,15 +44,16 @@
 #define VRAM_BANK_ADDRESS(x)    ((((x) >> 20) & 0x00FF) == 0x5E)
 
 struct scrn_format {
+        bool sf_enable;
         uint8_t sf_scroll_screen;       /* Normal/rotational background */
-        uint8_t sf_format;              /* Cell format
-                                         * Bitmap format */
+        uint8_t sf_type;                /* Cell format type
+                                         * Bitmap format type */
         uint8_t sf_cc_count;            /* Character color count */
 
         bool sf_cpu_access;             /* CPU access during screen
                                          * display interval is needed*/
 
-        void *sf_config;
+        void *sf_format;
 };
 
 struct scrn_bitmap_format {
