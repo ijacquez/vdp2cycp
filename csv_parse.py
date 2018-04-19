@@ -74,18 +74,18 @@ class SCRNFormat(object):
             raise ValueError("Invalid arguments for SCRNFormat")
 
     def __str__(self):
-        return """static const struct scrn_format _%s_format = {
+        return """
+static const struct scrn_format _%s_format = {
         .sf_scroll_screen = %s,
         .sf_format = %s,
         .sf_cc_count = %s,
-        .sf_format = &%s_%s_format
-};
-""" % (self._name,
-        self.scroll_screen,
-        self.format,
-        self.cc_count,
-        self._name,
-        self._format)
+        .sf_format = &_%s_%s_format
+};""" % (self._name,
+         self.scroll_screen,
+         self.format,
+         self.cc_count,
+         self._name,
+         self._format)
 
     @staticmethod
     def factory(name, *args):
@@ -152,9 +152,7 @@ class SCRNCellFormat(SCRNFormat):
             raise ValueError("Invalid arguments for SCRNCellFormat")
 
     def __str__(self):
-        return super(SCRNCellFormat, self).__str__() + \
-        """
-static const struct scrn_cell_format _%s_%s_format = {
+        return """static const struct scrn_cell_format _%s_%s_format = {
         .scf_character_size = %s,
         .scf_pnd_size = %s,
         .scf_auxiliary_mode = %s,
@@ -167,20 +165,22 @@ static const struct scrn_cell_format _%s_%s_format = {
         .scf_map.plane_b = %s,
         .scf_map.plane_c = %s,
         .scf_map.plane_d = %s
-};""" % (self._name,
-         self._format,
-         self.character_size,
-         self.pnd_size,
-         self.auxiliary_mode,
-         self.cp_table,
-         self.color_palette,
-         self.vcs_table,
-         self.reduction,
-         self.plane_size,
-         self.plane_a,
-         self.plane_b,
-         self.plane_c,
-         self.plane_d)
+};
+""" % (self._name,
+       self._format,
+       self.character_size,
+       self.pnd_size,
+       self.auxiliary_mode,
+       self.cp_table,
+       self.color_palette,
+       self.vcs_table,
+       self.reduction,
+       self.plane_size,
+       self.plane_a,
+       self.plane_b,
+       self.plane_c,
+       self.plane_d) + \
+       super(SCRNCellFormat, self).__str__()
 
     def _parse_character_size(self, value):
         return self._parse_map(value, CHARACTER_SIZES)
@@ -239,19 +239,19 @@ class SCRNBitmapFormat(SCRNFormat):
         return self._parse_address_range(value, CRAM_START, CRAM_END)
 
     def __str__(self):
-        return super(SCRNBitmapFormat, self).__str__() + \
-        """
-static const struct scrn_bitmap_format _%s_%s_format = {
+        return """static const struct scrn_bitmap_format _%s_%s_format = {
         .sbf_bitmap_size.width = %s,
         .sbf_bitmap_size.height = %s,
         .sbf_bitmap_pattern = %s,
         .sbf_color_palette = %s
-};""" % (self._name,
-         self._format,
-         self.width,
-         self.height,
-         self.bitmap_pattern,
-         self.color_palette)
+};
+""" % (self._name,
+       self._format,
+       self.width,
+       self.height,
+       self.bitmap_pattern,
+       self.color_palette) + \
+       super(SCRNBitmapFormat, self).__str__()
 
 def main():
     def convert_filename(filename):
