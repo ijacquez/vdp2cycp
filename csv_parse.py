@@ -6,13 +6,6 @@ import re
 
 PROGNAME = os.path.basename(sys.argv[0])
 
-def usage():
-    print >> sys.stderr, "%s in.csv" % (PROGNAME)
-
-if len(sys.argv[1:]) != 1:
-    usage()
-    sys.exit(2)
-
 CRAM_START = 0x05F00000
 CRAM_END = 0x05F7FFFF
 
@@ -138,7 +131,7 @@ class SCRNFormat(object):
 
     def _parse_cc_count(self, value):
         return self._parse_map(value, CCC)
-################################################################################
+
 class SCRNCellFormat(SCRNFormat):
     def __init__(self, name, *args):
         super(SCRNCellFormat, self).__init__(name, *args)
@@ -215,7 +208,7 @@ static const struct scrn_cell_format _%s_%s_format = {
 
     def _parse_plane(self, value):
         return self._parse_address_range(value, VRAM_START, VRAM_END)
-################################################################################
+
 class SCRNBitmapFormat(SCRNFormat):
     def __init__(self, name, *args):
         super(SCRNBitmapFormat, self).__init__(name, *args)
@@ -259,44 +252,56 @@ static const struct scrn_bitmap_format _%s_%s_format = {
          self.height,
          self.bitmap_pattern,
          self.color_palette)
-################################################################################
-def convert_filename(filename):
-    return os.path.splitext(filename)[0].replace(".", "_") \
-                                        .replace(" ", "_")
 
-csv_count = len(sys.argv[1:])
-idx = 0
+def main():
+    def convert_filename(filename):
+        return os.path.splitext(filename)[0].replace(".", "_") \
+                                            .replace(" ", "_")
 
-print "#include \"vdp2.h\"\n"
+    def usage():
+        print >> sys.stderr, "%s in.csv" % (PROGNAME)
 
-csv_file = sys.argv[1]
-try:
-    # Count number of rows
-    row_count = 0
-    with open(csv_file, "r") as ifp:
-        reader = csv.reader(ifp, delimiter = ',')
-        row_count = sum(1 for row in ifp) - 1
-    # Parse rows
-    config_names = []
-    with open(csv_file, "r") as ifp:
-        reader = csv.reader(ifp, delimiter = ',')
-        # Skip the header
-        reader.next()
-        row_idx = 0
-        for row in reader:
-            row_idx += 1
-            name = "%s_%04i" % (convert_filename(csv_file), idx)
-            config_names.append(name)
-            scrn = SCRNFormat.factory(name, *row)
-            if (row_idx > 1) and (row_idx <= row_count):
-                print
-            print scrn
-            idx += 1
-except IOError as e:
-    print >> sys.stderr, "%s: error: %s" % (PROGNAME, e.strerror)
-except csv.Error as e:
-    print >> sys.stderr, "%s: error: File %s, line %i: %s" % (PROGNAME, csv_file, reader.line_num, e)
-print
-print """static const struct scrn_format *_%s_formats[] = {""" % (convert_filename(csv_file))
-print ",\n".join(["        &_%s_format" % (config_name) for config_name in config_names] + ["        NULL"])
-print """};"""
+    if len(sys.argv[1:]) != 1:
+        usage()
+        sys.exit(2)
+
+    csv_count = len(sys.argv[1:])
+    idx = 0
+
+    print "#include \"vdp2.h\"\n"
+
+    csv_file = sys.argv[1]
+    try:
+        # Count number of rows
+        row_count = 0
+        with open(csv_file, "r") as ifp:
+            reader = csv.reader(ifp, delimiter = ',')
+            row_count = sum(1 for row in ifp) - 1
+        # Parse rows
+        config_names = []
+        with open(csv_file, "r") as ifp:
+            reader = csv.reader(ifp, delimiter = ',')
+            # Skip the header
+            reader.next()
+            row_idx = 0
+            for row in reader:
+                row_idx += 1
+                name = "%s_%04i" % (convert_filename(csv_file), idx)
+                config_names.append(name)
+                scrn = SCRNFormat.factory(name, *row)
+                if (row_idx > 1) and (row_idx <= row_count):
+                    print
+                print scrn
+                idx += 1
+    except IOError as e:
+        print >> sys.stderr, "%s: error: %s" % (PROGNAME, e.strerror)
+    except csv.Error as e:
+        print >> sys.stderr, "%s: error: File %s, line %i: %s" % (PROGNAME, csv_file, reader.line_num, e)
+
+    print
+    print """static const struct scrn_format *_%s_formats[] = {""" % (convert_filename(csv_file))
+    print ",\n".join(["        &_%s_format" % (config_name) for config_name in config_names] + ["        NULL"])
+    print """};"""
+
+if __name__ == '__main__':
+    main()
