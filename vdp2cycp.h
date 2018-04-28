@@ -27,6 +27,6 @@ struct state {
         struct scrn_format *formats[SCRN_COUNT];
 };
 
-int vdp2cycp(struct state *);
+int vdp2cycp(const struct state *);
 
 #endif /* !VDP2CYCP_H_ */

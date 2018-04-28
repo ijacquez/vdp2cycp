@@ -200,19 +200,17 @@ main(int argc __unused, char *argv[] __unused)
         state_init(&state, bg_formats);
 
         /* XXX: Place holder */
-        state.ramctl = 0x0300;
+        state.ramctl = 0x0000;
 
         if ((pnd_bitmap_validate_all(&state)) < 0) {
                 return -1;
         }
 
-        return 0;
-
         int error;
         error = vdp2cycp(&state);
         DEBUG_PRINTF("vdp2cycp: %i\n", error);
 
-        return -1;
+        return error;
 }
 
 /*-
@@ -221,10 +219,13 @@ main(int argc __unused, char *argv[] __unused)
  * If successful, 0 is returned. Otherwise, a negative value is returned
  * for the following cases:
  *
- *   - STATE is NULL
+ *   - -1 STATE is NULL
+ *   - -2 Insufficient number of vertical cell scroll access timings
+ *   - -3 Insufficient number of pattern name data access timings
+ *   - -4 Insufficient number of character pattern data access timings
  */
 int
-vdp2cycp(struct state *state)
+vdp2cycp(const struct state *state)
 {
         if (state == NULL) {
                 return -1;
@@ -246,6 +247,11 @@ vdp2cycp(struct state *state)
                         continue;
                 }
 
+                /* XXX: For now, only support the cell format */
+                if (format->sf_type != SCRN_TYPE_CELL) {
+                        continue;
+                }
+                
                 const struct scrn_cell_format *cell_format;
                 cell_format = &format->sf_format.cell;
 
@@ -255,6 +261,10 @@ vdp2cycp(struct state *state)
                 /* Determine if vertical cell scroll is used */
                 if (VRAM_BANK_ADDRESS(cell_format->scf_vcs_table)) {
                         tvcs = _timings_count_vcs[format->sf_scroll_screen];
+
+                        if (tvcs < 0) {
+                                return -2;
+                        }
                 }
 
                 /* Determine how many PND access timings are needed (due
@@ -264,7 +274,7 @@ vdp2cycp(struct state *state)
 
                 /* Invalid number of PND access timings */
                 if (tpnd < 0) {
-                        return -1;
+                        return -3;
                 }
 
                 /* Determine how many CPD access timings are needed (due
@@ -274,8 +284,11 @@ vdp2cycp(struct state *state)
 
                 /* Invalid number of PND access timings */
                 if (tcpd < 0) {
-                        return -1;
+                        return -4;
                 }
+
+                DEBUG_PRINTF("--------------------------------------------------------------------------------\n");
+                DEBUG_FORMAT(format);
 
                 DEBUG_PRINTF("tvcs: %i access timing required\n", tvcs);
                 DEBUG_PRINTF("tpnd: %i access timing required\n", tpnd);
@@ -398,19 +411,18 @@ pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
         case SCRN_NBG2:
         case SCRN_NBG3: {
                 uint8_t bank;
+                uint32_t i;
 
                 /* XXX: 4 or 8-Mbit? */
-                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[0]);
-                *pnd_bitmap |= BANK_BIT(bank);
+                for (i = 0; i < 4; i++) {
+                        bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[i]);
+                        *pnd_bitmap |= BANK_BIT(bank);
 
-                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[1]);
-                *pnd_bitmap |= BANK_BIT(bank);
-
-                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[2]);
-                *pnd_bitmap |= BANK_BIT(bank);
-
-                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[3]);
-                *pnd_bitmap |= BANK_BIT(bank);
+                        DEBUG_PRINTF("p: 0x%08X, %i, BANK_BIT(bank): 0x%02X\n",
+                            cell_format->scf_map.planes[i],
+                            bank,
+                            BANK_BIT(bank));
+                }
         } break;
         case SCRN_RBG1:
         case SCRN_RBG0:
