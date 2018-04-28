@@ -24,22 +24,22 @@
 #endif /* DEBUG */
 
 #ifdef DEBUG
-#define DEBUG_PATTERN(pv) do {                                                 \
-        char *debug_print_pattern(uint32_t);                                   \
+#define DEBUG_CYCLE_PATTERN(pv) do {                                           \
+        char *debug_print_cycle_pattern(uint32_t);                             \
         char *_output_buffer;                                                  \
-        _output_buffer = debug_print_pattern(pv);                              \
+        _output_buffer = debug_print_cycle_pattern(pv);                        \
         DEBUG_PRINTF("%s", _output_buffer);                                    \
         free(_output_buffer);                                                  \
 } while (false)
 #else
-#define DEBUG_PATTERN(...)
+#define DEBUG_CYCLE_PATTERN(...)
 #endif /* DEBUG */
 
 #ifdef DEBUG
-#define DEBUG_FORMAT(config) do {                                              \
+#define DEBUG_FORMAT(format) do {                                              \
         char *debug_print_format(const struct scrn_format *);                  \
         char *_output_buffer;                                                  \
-        _output_buffer = debug_print_format(config);                           \
+        _output_buffer = debug_print_format(format);                           \
         DEBUG_PRINTF("%s", _output_buffer);                                    \
         free(_output_buffer);                                                  \
 } while (false)

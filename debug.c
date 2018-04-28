@@ -9,7 +9,7 @@
 
 #ifdef DEBUG
 char *
-debug_print_pattern(uint32_t pv)
+debug_print_cycle_pattern(uint32_t pv)
 {
         static const char *timing_mnemonics[] = {
                 "PNDR_NBG0",    /* 0x0 */
@@ -101,9 +101,9 @@ debug_print_format(const struct scrn_format *format __unused)
         };
 
         static const char *reduction_names[] __unused = {
-                "1 reduction",
-                "1/2 reduction",
-                "1/4 reduction",
+                "No reduction",
+                "0.50 (half) reduction",
+                "0.25 (quarter) reduction",
                 NULL
         };
 
