@@ -649,13 +649,10 @@ pnd_bitmap_validate_all(const struct state *state)
                         continue;
                 }
 
-                DEBUG_PRINTF("*\n");
-
                 uint8_t pnd_bitmap;
 
                 int ret;
                 if ((ret = pnd_bitmap_calculate(format, &pnd_bitmap)) < 0) {
-                        DEBUG_PRINTF("TEST2\n");
                         return ret;
                 }
 
