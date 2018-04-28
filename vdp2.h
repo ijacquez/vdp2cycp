@@ -14,13 +14,13 @@
 #include <stdbool.h>
 
 #define SCRN_NBG0               (1 << 0) /* Normal background */
-#define SCRN_RBG1               (1 << 5) /* Rotational background */
 #define SCRN_NBG1               (1 << 1) /* Normal background */
-#define SCRN_EXBG               (1 << 1) /* External input screen  */
 #define SCRN_NBG2               (1 << 2) /* Normal background */
 #define SCRN_NBG3               (1 << 3) /* Normal background */
 #define SCRN_RBG0               (1 << 4) /* Rotational background */
-#define SCRN_COUNT              4
+#define SCRN_RBG1               (1 << 5) /* Rotational background */
+#define SCRN_EXBG               (1 << 7) /* External input screen  */
+#define SCRN_COUNT              6
 
 #define SCRN_TYPE_INVALID       0
 #define SCRN_TYPE_CELL          1
@@ -41,20 +41,7 @@
 #define VRAM_BANK_4MBIT(x)      (((x) >> 17) & 0x0007)
 
 /* Determine if address is in VDP2 VRAM */
-#define VRAM_BANK_ADDRESS(x)    ((((x) >> 20) & 0x00FF) == 0x5E)
-
-struct scrn_format {
-        bool sf_enable;
-        uint8_t sf_scroll_screen;       /* Normal/rotational background */
-        uint8_t sf_type;                /* Cell format type
-                                         * Bitmap format type */
-        uint8_t sf_cc_count;            /* Character color count */
-
-        bool sf_cpu_access;             /* CPU access during screen
-                                         * display interval is needed*/
-
-        void *sf_format;
-};
+#define VRAM_BANK_ADDRESS(x)    ((((x) >> 20) & 0x000000FF) == 0x5E)
 
 struct scrn_bitmap_format {
         struct {
@@ -77,6 +64,25 @@ struct scrn_bitmap_format {
                                          *   Mode 2: Swap Coefficient Data Read
                                          *   Mode 3: Swap via Rotation Parameter Window */
 };
+
+#ifdef NEW_EXPERIMENTAL_IMPL
+struct scrn_cell_format2 {
+        struct {
+                unsigned int scf_character_size:1;
+                unsigned int scf_pnd_size:1;
+                unsigned int scf_auxiliary_mode:1;
+                unsigned int scf_reduction:2;
+                unsigned int scf_plane_size:2;
+                unsigned int scf_rp_mode:2;
+                unsigned int reserved:23;
+        } __packed;
+
+        uint32_t scf_cp_table;          /* Character pattern table lead address */
+        uint32_t scf_color_palette;     /* Color palette lead address */
+
+        uint32_t scf_vcs_table;         /* Vertical cell scroll table lead address */
+};
+#endif /* NEW_EXPERIMENTAL_IMPL */
 
 struct scrn_cell_format {
         uint8_t scf_character_size;     /* Character size: (1 * 1) or (2 * 2) cells */
@@ -131,7 +137,25 @@ struct scrn_cell_format {
                 } __packed;
         } scf_map;                      /* Map lead addresses */
 
-        uint8_t priv_pnd_bitmap; /* Holds the pattern name data bitmap */
+        /* uint8_t priv_pnd_bitmap; /\* Holds the pattern name data bitmap *\/ */
+};
+
+struct scrn_format {
+        bool sf_enable;
+        uint8_t sf_scroll_screen;       /* Normal/rotational background */
+        uint8_t sf_type;                /* Cell format type
+                                         * Bitmap format type */
+        uint8_t sf_cc_count;            /* Character color count */
+
+        bool sf_cpu_access;             /* CPU access during screen
+                                         * display interval is needed*/
+
+        union {
+                struct scrn_cell_format cell;
+                struct scrn_bitmap_format bitmap;
+        } sf_format;
+
+        /* void *sf_format; */
 };
 
 #define VRAM_CTL_CYCP_PNDR_NBG0         0x0 /* NBG0 pattern name data read */

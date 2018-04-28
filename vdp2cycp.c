@@ -11,6 +11,8 @@
 #include "math.h"
 #include "debug.h"
 
+extern const struct scrn_format *bg_formats[];
+
 /* Table representing number of VRAM accesses required for pattern name
  * data. */
 static const int8_t _timings_count_pnd[3][3] = {
@@ -170,17 +172,17 @@ static const uint8_t _timings_range_vcs[2] = {
         0x07
 };
 
-static void state_init(struct state *) __unused;
-static void state_configs_build(struct state *, struct scrn_format *) __unused;
+static void state_init(struct state *state, const struct scrn_format **) __unused;
 
-static int pnd_bitmap_calculate(struct scrn_format *) __unused;
-static bool pnd_bitmap_validate(const struct state *, uint8_t) __unused;
-static bool pnd_bitmap_validate_all(const struct state *);
+static int pnd_bitmap_calculate(const struct scrn_format *, uint8_t *) __unused;
+static int pnd_bitmap_validate(const struct state *, uint8_t) __unused;
+static int pnd_bitmap_validate_all(const struct state *);
 
 int
 main(int argc __unused, char *argv[] __unused)
 {
         DEBUG_PRINTF("sizeof(union vram_cycp): %lu bytes(s)\n", sizeof(union vram_cycp));
+        DEBUG_PRINTF("sizeof(struct scrn_format): %lu byte(s)\n", sizeof(struct scrn_format));
         DEBUG_PRINTF("sizeof(struct scrn_cell_format): %lu byte(s)\n", sizeof(struct scrn_cell_format));
         DEBUG_PRINTF("sizeof(struct scrn_bitmap_format): %lu byte(s)\n", sizeof(struct scrn_bitmap_format));
         DEBUG_PRINTF("sizeof(_timings_count_pnd): %lu byte(s)\n", sizeof(_timings_count_pnd));
@@ -191,47 +193,20 @@ main(int argc __unused, char *argv[] __unused)
         DEBUG_PRINTF("sizeof(_timings_range_normal): %lu byte(s)\n", sizeof(_timings_range_normal));
         DEBUG_PRINTF("sizeof(_timings_range_hires): %lu byte(s)\n", sizeof(_timings_range_hires));
         DEBUG_PRINTF("sizeof(_timings_range_vcs): %lu byte(s)\n", sizeof(_timings_range_vcs));
+        DEBUG_PRINTF("sizeof(struct state): %lu byte(s)\n", sizeof(struct state));
 
         struct state state;
 
-        state_init(&state);
+        state_init(&state, bg_formats);
 
         /* XXX: Place holder */
-        state.ramctl = 0x03000;
+        state.ramctl = 0x0300;
 
-        struct scrn_format configs[SCRN_COUNT];
-        struct scrn_cell_format config_nbg0;
-        struct scrn_cell_format config_nbg1;
-        struct scrn_cell_format config_nbg2;
-        struct scrn_cell_format config_nbg3;
-
-        memset(&configs, 0x00, sizeof(configs));
-        memset(&config_nbg0, 0x00, sizeof(config_nbg0));
-        memset(&config_nbg1, 0x00, sizeof(config_nbg1));
-        memset(&config_nbg2, 0x00, sizeof(config_nbg2));
-        memset(&config_nbg3, 0x00, sizeof(config_nbg3));
-
-        configs[0].sf_scroll_screen = SCRN_NBG0;
-        configs[0].sf_type = SCRN_TYPE_CELL;
-        configs[0].sf_cc_count = SCRN_CCC_PALETTE_16;
-        configs[0].sf_format = &config_nbg0;
-
-        config_nbg0.scf_pnd_size = 1;
-        config_nbg0.scf_cp_table = VRAM_ADDR_4MBIT(0, 0x00000);
-        config_nbg0.scf_vcs_table = VRAM_ADDR_4MBIT(0, 0x00000);
-        config_nbg0.scf_reduction = SCRN_REDUCTION_QUARTER;
-        config_nbg0.scf_map.plane_a = VRAM_ADDR_4MBIT(2, 0x00000);
-        config_nbg0.scf_map.plane_b = VRAM_ADDR_4MBIT(2, 0x00000);
-        config_nbg0.scf_map.plane_c = VRAM_ADDR_4MBIT(3, 0x00000);
-        config_nbg0.scf_map.plane_d = VRAM_ADDR_4MBIT(3, 0x00000);
-
-        DEBUG_FORMAT(&configs[0]);
-
-        state_configs_build(&state, configs);
-
-        if (!(pnd_bitmap_validate_all(&state))) {
+        if ((pnd_bitmap_validate_all(&state)) < 0) {
                 return -1;
         }
+
+        return 0;
 
         int error;
         error = vdp2cycp(&state);
@@ -258,23 +233,28 @@ vdp2cycp(struct state *state)
         /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
 
         uint32_t scrn;
-        for (scrn = 0; scrn < state->cell_count; scrn++) {
-                const struct scrn_format *config;
-                config = state->cell_configs[scrn];
+        for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
+                struct scrn_format *format;
+                format = state->formats[scrn];
 
-                if (config == NULL) {
+                if (format == NULL) {
+                        continue;
+                }
+
+                /* Check if scroll screen is enabled */
+                if (!format->sf_enable) {
                         continue;
                 }
 
                 const struct scrn_cell_format *cell_format;
-                cell_format = config->sf_format;
+                cell_format = &format->sf_format.cell;
 
                 int8_t tvcs;
                 tvcs = 0;
 
                 /* Determine if vertical cell scroll is used */
                 if (VRAM_BANK_ADDRESS(cell_format->scf_vcs_table)) {
-                        tvcs = _timings_count_vcs[config->sf_scroll_screen];
+                        tvcs = _timings_count_vcs[format->sf_scroll_screen];
                 }
 
                 /* Determine how many PND access timings are needed (due
@@ -290,7 +270,7 @@ vdp2cycp(struct state *state)
                 /* Determine how many CPD access timings are needed (due
                  * to reduction) and character color count */
                 int8_t tcpd;
-                tcpd = _timings_count_cell_cpd[config->sf_cc_count][cell_format->scf_reduction];
+                tcpd = _timings_count_cell_cpd[format->sf_cc_count][cell_format->scf_reduction];
 
                 /* Invalid number of PND access timings */
                 if (tcpd < 0) {
@@ -322,124 +302,124 @@ vdp2cycp(struct state *state)
 }
 
 /*-
- * Initialize HW state.
+ * Initialize pseudo HW state via scaffolding.
  */
 static void
-state_init(struct state *state)
+state_init(struct state *state, const struct scrn_format **formats)
 {
         if (state == NULL) {
                 return;
         }
 
-        state->ramctl = 0x0000;
-        memset(&state->vram_cycp, 0x00, sizeof(state->vram_cycp));
+        memset(state, 0x00, sizeof(*state));
 
-        memset(state->cell_configs, 0x00, sizeof(state->cell_configs));
-        state->cell_count = 0;
-
-        memset(state->bitmap_configs, 0x00, sizeof(state->bitmap_configs));
-        state->bitmap_count = 0;
-}
-
-/*-
- * Given an array of configurations, Generate two table look ups of cell
- * and bitmap configs, respectively.
- */
-static void
-state_configs_build(struct state *state, struct scrn_format *configs)
-{
-        if (configs == NULL) {
+        if (formats == NULL) {
                 return;
         }
 
-        state->cell_count = 0;
-        state->bitmap_count = 0;
+        /*  */
 
-        uint32_t scrn;
-        for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
-                struct scrn_format *config;
-                config = &configs[scrn];
+        state->formats[0] = &state->format_nbg0;
+        state->formats[1] = &state->format_nbg1;
+        state->formats[2] = &state->format_nbg2;
+        state->formats[3] = &state->format_nbg3;
+        state->formats[4] = &state->format_rbg0;
+        state->formats[5] = &state->format_rbg1;
 
-                switch (config->sf_type) {
-                case SCRN_TYPE_CELL:
-                        state->cell_configs[scrn] = config;
-                        state->cell_count++;
+        uint32_t i;
+        for (i = 0; i < SCRN_COUNT; i++) {
+                if (formats[i] == NULL) {
                         break;
-                case SCRN_TYPE_BITMAP:
-                        state->bitmap_configs[scrn] = config;
-                        state->bitmap_count++;
+                }
+
+                switch (formats[i]->sf_scroll_screen) {
+                case SCRN_NBG0:
+                        (void)memcpy(&state->format_nbg0, formats[i], sizeof(*formats[i]));
+                        break;
+                case SCRN_NBG1:
+                        (void)memcpy(&state->format_nbg1, formats[i], sizeof(*formats[i]));
+                        break;
+                case SCRN_NBG2:
+                        (void)memcpy(&state->format_nbg2, formats[i], sizeof(*formats[i]));
+                        break;
+                case SCRN_NBG3:
+                        (void)memcpy(&state->format_nbg3, formats[i], sizeof(*formats[i]));
+                        break;
+                case SCRN_RBG0:
+                        (void)memcpy(&state->format_rbg0, formats[i], sizeof(*formats[i]));
+                        break;
+                case SCRN_RBG1:
+                        (void)memcpy(&state->format_rbg1, formats[i], sizeof(*formats[i]));
                         break;
                 }
         }
 }
 
 /*-
- * Generate an 8-bit bit-map BITMAP of where pattern name data is stored
- * amongst the 4 banks.
+ * Calculate an 8-bit bit-map PND_BITMAP of where pattern name data is
+ * stored amongst the 4 banks.
  *
  * If succesful, 0 is returned. Otherwise, a negative value is return
  * for the following cases:
  *
- *   - CONFIG is NULL
- *   - CONFIG doesn't point to valid format
- *   - CONFIG is not a cell format
+ *   - -1 PND_BITMAP is NULL
+ *   - -2 FORMAT is NULL
+ *   - -3 FORMAT is not a cell format
  */
 static int
-pnd_bitmap_calculate(struct scrn_format *config)
+pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
 {
 #define BANK_BIT(b) (1 << (4 - (b) - 1))
 
-        if (config == NULL) {
+        if (pnd_bitmap == NULL) {
                 return -1;
         }
 
-        if (config->sf_format == NULL) {
-                return -1;
+        *pnd_bitmap = 0x00;
+
+        if (format == NULL) {
+                return -2;
         }
 
-        if (config->sf_type != SCRN_TYPE_CELL) {
-                return -1;
+        if (format->sf_type != SCRN_TYPE_CELL) {
+                return -3;
         }
 
-        struct scrn_cell_format *cell_format;
-        cell_format = config->sf_format;
+        if (!format->sf_enable) {
+                return 0;
+        }
 
-        cell_format->priv_pnd_bitmap = 0x00;
+        const struct scrn_cell_format *cell_format;
+        cell_format = &format->sf_format.cell;
 
-        uint8_t bank;
-
-        switch (config->sf_scroll_screen) {
+        switch (format->sf_scroll_screen) {
         case SCRN_NBG0:
         case SCRN_NBG1:
         case SCRN_NBG2:
-        case SCRN_NBG3:
+        case SCRN_NBG3: {
+                uint8_t bank;
+
                 /* XXX: 4 or 8-Mbit? */
                 bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[0]);
-                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
+                *pnd_bitmap |= BANK_BIT(bank);
 
                 bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[1]);
-                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
+                *pnd_bitmap |= BANK_BIT(bank);
 
                 bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[2]);
-                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
+                *pnd_bitmap |= BANK_BIT(bank);
 
                 bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[3]);
-                cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
-
-                return 0;
+                *pnd_bitmap |= BANK_BIT(bank);
+        } break;
         case SCRN_RBG1:
-        case SCRN_RBG0: {
-                uint32_t i;
-                for (i = 0; i < 16; i++) {
-                        /* XXX: 4 or 8-Mbit? */
-                        bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[i]);
-
-                        cell_format->priv_pnd_bitmap |= BANK_BIT(bank);
-                }
-        } return 0;
+        case SCRN_RBG0:
+                break;
         default:
                 return -1;
         }
+
+        return 0;
 
 #undef BANK_BIT
 }
@@ -448,10 +428,14 @@ pnd_bitmap_calculate(struct scrn_format *config)
  * Validate 8-bit bit-map BITMAP, which represent where pattern name data
  * is stored amongst the 4 VRAM banks.
  *
- * If successful, true is returned. Otherwise, false.
+ * If succesful, 0 is returned. Otherwise, a negative value is return
+ * for the following cases:
+ *
+ *   - -1 STATE is NULL
+ *   - -2 Pattern name data is stored in an invalid bank
  */
-static bool
-pnd_bitmap_validate(const struct state *state, uint8_t bitmap)
+static int
+pnd_bitmap_validate(const struct state *state, uint8_t pnd_bitmap)
 {
         /*-
          * Where the pattern name data can be placed:
@@ -489,121 +473,196 @@ pnd_bitmap_validate(const struct state *state, uint8_t bitmap)
          * | Bit                       |
          * +-------+-------------------+
          * | 5   4 |  3    2    1    0 |
-         * +-------+----+----+----+----+-------+------+
-         * | Bank  | A0 | A1 | B0 | B1 | Value | Mask |
-         * +-------+----+----+----+----+-------+------+
-         * | 0   0 | 1    1    0    0  | 0x0C  | 0x33 |
-         * +-------+-------------------+--------------+
-         * | 0   0 | 0    0    1    1  | 0x03  | 0x3C |
-         * +-------+-------------------+--------------+
+         * +-------+----+----+----+----+-------+
+         * | Bank  | A0 | A1 | B0 | B1 | Value |
+         * +-------+----+----+----+----+-------+
+         * | 0   0 | 0    1    0    0  | 0x04  |
+         * | 0   0 | 1    0    0    0  | 0x08  |
+         * | 0   0 | 1    1    0    0  | 0x0C  |
+         * +-------+-------------------+-------+
+         * | 0   0 | 0    0    0    1  | 0x01  |
+         * | 0   0 | 0    0    1    0  | 0x02  |
+         * | 0   0 | 0    0    1    1  | 0x03  |
+         * +-------+-------------------+-------+
          *
-         * +-------+-------------------+--------------+
-         * | 1   0 | 0    1    1    1  | 0x27  | 0x18 |
-         * +-------+-------------------+--------------+
-         * | 1   0 | 1    1    0    0  | 0x2C  | 0x13 |
-         * +-------+-------------------+--------------+
+         * +-------+-------------------+-------+
+         * | 1   0 | 0    0    0    1  | 0x21  |
+         * | 1   0 | 0    0    1    0  | 0x22  |
+         * | 1   0 | 0    0    1    1  | 0x23  |
+         * | 1   0 | 0    1    0    0  | 0x24  |
+         * | 1   0 | 0    1    0    1  | 0x25  |
+         * | 1   0 | 0    1    1    0  | 0x26  |
+         * | 1   0 | 0    1    1    1  | 0x27  |
+         * +-------+-------------------+-------+
+         * | 1   0 | 0    1    0    0  | 0x24  |
+         * | 1   0 | 1    0    0    0  | 0x28  |
+         * | 1   0 | 1    1    0    0  | 0x2C  |
+         * +-------+-------------------+-------+
          *
-         * +-------+-------------------+--------------+
-         * | 0   1 | 1    1    0    1  | 0x0D  | 0x22 |
-         * +-------+-------------------+--------------+
-         * | 0   1 | 0    0    1    1  | 0x13  | 0x2C |
-         * +-------+-------------------+--------------+
+         * +-------+-------------------+-------+
+         * | 0   1 | 0    1    0    0  | 0x14  |
+         * | 0   1 | 1    0    0    0  | 0x18  |
+         * | 0   1 | 1    1    0    0  | 0x1C  |
+         * | 0   1 | 0    0    0    1  | 0x11  |
+         * | 0   1 | 0    1    0    1  | 0x15  |
+         * | 0   1 | 1    0    0    1  | 0x19  |
+         * | 0   1 | 1    1    0    1  | 0x1D  |
+         * +-------+-------------------+-------+
+         * | 0   1 | 0    0    0    1  | 0x11  |
+         * | 0   1 | 0    0    1    0  | 0x12  |
+         * | 0   1 | 0    0    1    1  | 0x13  |
+         * +-------+-------------------+-------+
          *
-         * +-------+-------------------+--------------+
-         * | 1   1 | 1    1    0    0  | 0x3C  | 0x03 |
-         * +-------+-------------------+--------------+
-         * | 1   1 | 1    0    0    1  | 0x39  | 0x06 |
-         * +-------+-------------------+--------------+
-         * | 1   1 | 0    1    1    0  | 0x36  | 0x09 |
-         * +-------+-------------------+--------------+
-         * | 1   1 | 0    0    1    1  | 0x33  | 0x0C |
-         * +-------+-------------------+--------------+
+         * +-------+-------------------+-------+
+         * | 1   1 | 0    1    0    0  | 0x34  |
+         * | 1   1 | 1    0    0    0  | 0x38  |
+         * | 1   1 | 1    1    0    0  | 0x3C  |
+         * +-------+-------------------+-------+
+         * | 1   1 | 0    0    0    1  | 0x31  |
+         * | 1   1 | 1    0    0    0  | 0x38  |
+         * | 1   1 | 1    0    0    1  | 0x39  |
+         * +-------+-------------------+-------+
+         * | 1   1 | 0    0    1    0  | 0x32  |
+         * | 1   1 | 0    1    0    0  | 0x34  |
+         * | 1   1 | 0    1    1    0  | 0x36  |
+         * +-------+-------------------+-------+
+         * | 1   1 | 0    0    0    1  | 0x31  |
+         * | 1   1 | 0    0    1    0  | 0x32  |
+         * | 1   1 | 0    0    1    1  | 0x33  |
+         * +-------+-------------------+-------+
          */
 
-#define VALIDATE_BITMAP(bitmap, bank, i)                                       \
-        ((((uint8_t)(bitmap) & pnd_bank_mask[(bank)][1 + (i)]) != 0x00))
-
-        static const uint8_t pnd_bank_mask[4][5] = {
+        static const uint8_t pnd_bank_masks[4][10] = {
+                /* Bank A: No split
+                 * Bank B: No split */
                 {
-                        2, /* Count */
-                        0x33,
-                        0x3C,
-                        0xFF,
-                        0xFF
-                }, {
-                        2, /* Count */
-                        0x18,
-                        0x13,
-                        0xFF,
-                        0xFF
-                }, {
-                        2, /* Count */
-                        0x22,
-                        0x2C,
-                        0xFF,
-                        0xFF
-                }, {
-                        4, /* Count */
+                        0x01,
+                        0x02,
                         0x03,
+                        0x04,
+                        0x08,
+                        0x0C
+                },
+                /* Bank A: Split
+                 * Bank B: No split */
+                {
+                        0x01,
+                        0x02,
+                        0x03,
+                        0x04,
+                        0x05,
                         0x06,
+                        0x07,
+                        0x08,
+                        0x0C
+                },
+                /* Bank A: No split
+                 * Bank B: Split */
+                {
+                        0x01,
+                        0x02,
+                        0x03,
+                        0x04,
+                        0x05,
+                        0x08,
+                        0x09,
+                        0x0C,
+                        0x0D
+                },
+                /* Bank A: Split
+                 * Bank B: Split */
+                {
+                        0x01,
+                        0x02,
+                        0x03,
+                        0x04,
+                        0x06,
+                        0x08,
                         0x09,
                         0x0C
                 }
         };
 
-        /* XXX: This would move elsewhere */
-        uint8_t bank;
-        bank = (state->ramctl & 0x0300) >> 8;
-
-        uint32_t mask_count;
-        mask_count = pnd_bank_mask[bank][0];
-
-        bool valid;
-        valid = false;
-
-        uint32_t i;
-        for (i = 0; i < (mask_count / 2); i++) {
-                valid = valid || VALIDATE_BITMAP(bitmap, bank, i);
-                valid = valid || VALIDATE_BITMAP(bitmap, bank, i + 1);
+        if (state == NULL) {
+                return -1;
         }
 
-        return valid;
+        if ((pnd_bitmap & 0x0F) == 0x00) {
+                return 0;
+        }
 
-#undef VALIDATE_BITMAP
+        /* XXX: This needs to be moved elsewhere */
+        uint8_t bank_config;
+        bank_config = (state->ramctl & 0x0300) >> 8;
+
+        uint32_t i;
+        for (i = 0; ; i++) {
+                uint8_t pnd_bank_mask;
+                pnd_bank_mask = pnd_bank_masks[bank_config][i];
+
+                if (pnd_bank_mask == 0x00) {
+                        break;
+                }
+
+                if ((pnd_bitmap & 0x0F) == pnd_bank_mask) {
+                        return 0;
+                }
+        }
+
+        return -2;
 }
 
 /*-
- * Calculate and validate concatenated bit-map, of all configured scroll
- * screens.
+ * Calculate and validate concatenated pattern name bit-map, of all
+ * configured scroll screens.
  *
- * If successful, true is returned. Otherwise, false.
+ * If succesful, 0 is returned. Otherwise, a negative value is return
+ * for the following cases:
+ *
+ *   - -1 STATE is NULL
+ *   - -2 Pattern name data is stored in an invalid bank
  */
-static bool
+static int
 pnd_bitmap_validate_all(const struct state *state)
 {
-        uint8_t pnd_bitmap;
-        pnd_bitmap = 0x00;
+        if (state == NULL) {
+                return -1;
+        }
+
+        uint8_t pnd_bitmap_all;
+        pnd_bitmap_all = 0x00;
 
         uint32_t scrn;
-        for (scrn = 0; scrn < state->cell_count; scrn++) {
-                struct scrn_format *config;
-                config = state->cell_configs[scrn];
+        for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
+                const struct scrn_format *format;
+                format = state->formats[scrn];
 
-                if (config == NULL) {
+                if (format == NULL) {
                         continue;
                 }
 
-                if ((pnd_bitmap_calculate(config)) < 0) {
-                        return false;
+                if (!format->sf_enable) {
+                        continue;
                 }
 
-                const struct scrn_cell_format *cell_format;
-                cell_format = config->sf_format;
+                if (format->sf_type != SCRN_TYPE_CELL) {
+                        continue;
+                }
 
-                pnd_bitmap |= cell_format->priv_pnd_bitmap;
+                DEBUG_PRINTF("*\n");
+
+                uint8_t pnd_bitmap;
+
+                int ret;
+                if ((ret = pnd_bitmap_calculate(format, &pnd_bitmap)) < 0) {
+                        DEBUG_PRINTF("TEST2\n");
+                        return ret;
+                }
+
+                pnd_bitmap_all |= pnd_bitmap;
         }
 
-        DEBUG_PRINTF("pnd_bitmap: 0x%02X\n", pnd_bitmap);
+        DEBUG_PRINTF("pnd_bitmap_all: 0x%02X\n", pnd_bitmap_all);
 
-        return (pnd_bitmap_validate(state, pnd_bitmap));
+        return pnd_bitmap_validate(state, pnd_bitmap_all);
 }

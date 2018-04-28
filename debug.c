@@ -72,7 +72,7 @@ debug_print_pattern(uint32_t pv)
 
 #ifdef DEBUG
 char *
-debug_print_format(const struct scrn_format *config __unused)
+debug_print_format(const struct scrn_format *format __unused)
 {
         static const char *format_names[] __unused = {
                 "[1;31mInvalid[m",
@@ -124,10 +124,10 @@ debug_print_format(const struct scrn_format *config __unused)
         assert(output_buffer != NULL);
         memset(output_buffer, '\0', bytes);
 
-        switch (config->sf_format) {
-        case SCRN_FORMAT_CELL: {
-                struct scrn_cell_format *cell_config;
-                cell_config = config->sf_config;
+        switch (format->sf_type) {
+        case SCRN_TYPE_CELL: {
+                const struct scrn_cell_format *cell_format;
+                cell_format = &format->sf_format.cell;
 
                 (void)sprintf(output_buffer,
                     "\n"
@@ -141,38 +141,35 @@ debug_print_format(const struct scrn_format *config __unused)
                     "  scf_map.plane_a: 0x%08X (bank %i)\n"
                     "  scf_map.plane_b: 0x%08X (bank %i)\n"
                     "  scf_map.plane_c: 0x%08X (bank %i)\n"
-                    "  scf_map.plane_d: 0x%08X (bank %i)\n"
-                    "\n"
-                    "  priv_pnd_bitmap: 0x%02X\n",
-                    scroll_screen_names[log2_pow2(config->sf_scroll_screen)],
-                    format_names[config->sf_format],
-                    cc_count_names[config->sf_cc_count],
-                    pnd_size_names[cell_config->scf_pnd_size],
-                    cell_config->scf_cp_table,
-                    cell_config->scf_vcs_table,
-                    reduction_names[cell_config->scf_reduction],
-                    cell_config->scf_map.plane_a,
-                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_a),
-                    cell_config->scf_map.plane_b,
-                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_b),
-                    cell_config->scf_map.plane_c,
-                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_c),
-                    cell_config->scf_map.plane_d,
-                    VRAM_BANK_4MBIT(cell_config->scf_map.plane_d),
-                    cell_config->priv_pnd_bitmap);
+                    "  scf_map.plane_d: 0x%08X (bank %i)\n",
+                    scroll_screen_names[log2_pow2(format->sf_scroll_screen)],
+                    format_names[format->sf_type],
+                    cc_count_names[format->sf_cc_count],
+                    pnd_size_names[cell_format->scf_pnd_size],
+                    cell_format->scf_cp_table,
+                    cell_format->scf_vcs_table,
+                    reduction_names[cell_format->scf_reduction],
+                    cell_format->scf_map.plane_a,
+                    VRAM_BANK_4MBIT(cell_format->scf_map.plane_a),
+                    cell_format->scf_map.plane_b,
+                    VRAM_BANK_4MBIT(cell_format->scf_map.plane_b),
+                    cell_format->scf_map.plane_c,
+                    VRAM_BANK_4MBIT(cell_format->scf_map.plane_c),
+                    cell_format->scf_map.plane_d,
+                    VRAM_BANK_4MBIT(cell_format->scf_map.plane_d));
         } break;
-        case SCRN_FORMAT_BITMAP: {
-                struct scrn_bitmap_format *bitmap_config __unused;
-                bitmap_config = config->sf_config;
+        case SCRN_TYPE_BITMAP: {
+                const struct scrn_bitmap_format *bitmap_format __unused;
+                bitmap_format = &format->sf_format.bitmap;
 
                 (void)sprintf(output_buffer,
                     "\n"
                     "    scroll_screen: %s\n"
                     "           format: %s\n"
                     "         cc_count: %s\n",
-                    scroll_screen_names[log2_pow2(config->sf_scroll_screen)],
-                    format_names[config->sf_format],
-                    cc_count_names[config->sf_cc_count]);
+                    scroll_screen_names[log2_pow2(format->sf_scroll_screen)],
+                    format_names[format->sf_type],
+                    cc_count_names[format->sf_cc_count]);
         } break;
         }
 

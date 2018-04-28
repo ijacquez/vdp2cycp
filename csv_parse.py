@@ -80,13 +80,14 @@ static const struct scrn_format _%s_format = {
         .sf_scroll_screen = %s,
         .sf_type = %s,
         .sf_cc_count = %s,
-        .sf_format = &_%s_%s_format
+        .sf_format = {
+                %s
+        }
 };""" % (self._name,
          self.scroll_screen,
          self.format,
          self.cc_count,
-         self._name,
-         self._format)
+         self._format_str())
 
     @staticmethod
     def factory(name, *args):
@@ -101,6 +102,9 @@ static const struct scrn_format _%s_format = {
     def _trim(value):
         pattern = re.compile(r"\s+")
         return re.sub(pattern, "", value)
+
+    def _format_str(self):
+        return ""
 
     def _parse_map(self, value, kvmap):
         try:
@@ -152,24 +156,21 @@ class SCRNCellFormat(SCRNFormat):
         except IndexError:
             raise ValueError("Invalid arguments for SCRNCellFormat")
 
-    def __str__(self):
-        return """static const struct scrn_cell_format _%s_%s_format = {
-        .scf_character_size = %s,
-        .scf_pnd_size = %s,
-        .scf_auxiliary_mode = %s,
-        .scf_cp_table = %s,
-        .scf_color_palette = %s,
-        .scf_vcs_table = %s,
-        .scf_reduction = %s,
-        .scf_plane_size = %s,
-        .scf_map.plane_a = %s,
-        .scf_map.plane_b = %s,
-        .scf_map.plane_c = %s,
-        .scf_map.plane_d = %s
-};
-""" % (self._name,
-       self._format,
-       self.character_size,
+    def _format_str(self):
+        return """.cell = {
+                        .scf_character_size = %s,
+                        .scf_pnd_size = %s,
+                        .scf_auxiliary_mode = %s,
+                        .scf_cp_table = %s,
+                        .scf_color_palette = %s,
+                        .scf_vcs_table = %s,
+                        .scf_reduction = %s,
+                        .scf_plane_size = %s,
+                        .scf_map.plane_a = %s,
+                        .scf_map.plane_b = %s,
+                        .scf_map.plane_c = %s,
+                        .scf_map.plane_d = %s
+                }""" % (self.character_size,
        self.pnd_size,
        self.auxiliary_mode,
        self.cp_table,
@@ -180,8 +181,7 @@ class SCRNCellFormat(SCRNFormat):
        self.plane_a,
        self.plane_b,
        self.plane_c,
-       self.plane_d) + \
-       super(SCRNCellFormat, self).__str__()
+       self.plane_d)
 
     def _parse_character_size(self, value):
         return self._parse_map(value, CHARACTER_SIZES)
@@ -221,6 +221,17 @@ class SCRNBitmapFormat(SCRNFormat):
         except IndexError:
             raise ValueError("Invalid arguments for SCRNBitmapFormat")
 
+    def _format_str(self):
+        return """.bitmap = {
+                        .sbf_bitmap_size.width = %s,
+                        .sbf_bitmap_size.height = %s,
+                        .sbf_bitmap_pattern = %s,
+                        .sbf_color_palette = %s
+                }""" % (self.width,
+       self.height,
+       self.bitmap_pattern,
+       self.color_palette)
+
     def _parse_width(self, value):
         ivalue = self._parse_hex(value)
         if (ivalue != 512) and (ivalue != 1024):
@@ -239,39 +250,25 @@ class SCRNBitmapFormat(SCRNFormat):
     def _parse_color_palette(self, value):
         return self._parse_address_range(value, CRAM_START, CRAM_END)
 
-    def __str__(self):
-        return """static const struct scrn_bitmap_format _%s_%s_format = {
-        .sbf_bitmap_size.width = %s,
-        .sbf_bitmap_size.height = %s,
-        .sbf_bitmap_pattern = %s,
-        .sbf_color_palette = %s
-};
-""" % (self._name,
-       self._format,
-       self.width,
-       self.height,
-       self.bitmap_pattern,
-       self.color_palette) + \
-       super(SCRNBitmapFormat, self).__str__()
-
 def main():
-    def convert_filename(filename):
-        return os.path.splitext(filename)[0].replace(".", "_") \
-                                            .replace(" ", "_")
-
     def usage():
-        print >> sys.stderr, "%s in.csv" % (PROGNAME)
+        print >> sys.stderr, "%s in.csv identifier" % (PROGNAME)
 
-    if len(sys.argv[1:]) != 1:
+    if len(sys.argv[1:]) != 2:
         usage()
         sys.exit(2)
 
-    csv_count = len(sys.argv[1:])
-    idx = 0
-
-    print "#include \"vdp2.h\"\n"
-
     csv_file = sys.argv[1]
+    identifier = sys.argv[2]
+
+    # Determine if identifier is valid
+    if not re.match(r"^[a-zA-Z_][a-zA-Z_]*$", identifier):
+        print >> sys.stderr, "%s: error: Invalid identifier" % (PROGNAME)
+        sys.exit(1)
+
+    print "#include \"vdp2.h\""
+
+    idx = 0
     try:
         # Count number of rows
         row_count = 0
@@ -287,20 +284,20 @@ def main():
             row_idx = 0
             for row in reader:
                 row_idx += 1
-                name = "%s_%04i" % (convert_filename(csv_file), idx)
+                name = "%s_%02i" % (identifier, idx)
                 config_names.append(name)
                 scrn = SCRNFormat.factory(name, *row)
-                if (row_idx > 1) and (row_idx <= row_count):
-                    print
                 print scrn
                 idx += 1
     except IOError as e:
         print >> sys.stderr, "%s: error: %s" % (PROGNAME, e.strerror)
+        sys.exit(1)
     except csv.Error as e:
         print >> sys.stderr, "%s: error: File %s, line %i: %s" % (PROGNAME, csv_file, reader.line_num, e)
+        sys.exit(1)
 
     print
-    print """static const struct scrn_format *_%s_formats[] = {""" % (convert_filename(csv_file))
+    print """const struct scrn_format *%s_formats[] = {""" % (identifier)
     print ",\n".join(["        &_%s_format" % (config_name) for config_name in config_names] + ["        NULL"])
     print """};"""
 

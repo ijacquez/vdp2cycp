@@ -19,7 +19,8 @@ LDFLAGS:=
 
 SRCS:= vdp2cycp.c \
 	math.c \
-	debug.c
+	debug.c \
+	configs.c
 INCLUDES:= /usr/include /usr/local/include
 LIB_DIRS:= /usr/local/lib
 LIBS:= cmocka
