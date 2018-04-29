@@ -17,16 +17,21 @@ struct state {
         uint16_t ramctl;
         union vram_cycp vram_cycp;
 
-        struct scrn_format format_nbg0;
-        struct scrn_format format_nbg1;
-        struct scrn_format format_nbg2;
-        struct scrn_format format_nbg3;
-        struct scrn_format format_rbg0;
-        struct scrn_format format_rbg1;
+        struct scroll_screen {
+                struct scrn_format format;
+                uint8_t pnd_bitmap;
+        };
 
-        struct scrn_format *formats[SCRN_COUNT];
+        struct scroll_screen nbg0;
+        struct scroll_screen nbg1;
+        struct scroll_screen nbg2;
+        struct scroll_screen nbg3;
+        struct scroll_screen rbg0;
+        struct scroll_screen rbg1;
+
+        struct scroll_screen *scroll_screens[SCRN_COUNT];
 };
 
-int vdp2cycp(const struct state *);
+int32_t vdp2cycp(const struct state *);
 
 #endif /* !VDP2CYCP_H_ */

@@ -13,13 +13,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define SCRN_NBG0               (1 << 0) /* Normal background */
-#define SCRN_NBG1               (1 << 1) /* Normal background */
-#define SCRN_NBG2               (1 << 2) /* Normal background */
-#define SCRN_NBG3               (1 << 3) /* Normal background */
-#define SCRN_RBG0               (1 << 4) /* Rotational background */
-#define SCRN_RBG1               (1 << 5) /* Rotational background */
-#define SCRN_EXBG               (1 << 7) /* External input screen  */
+#define SCRN_NBG0               0 /* Normal background */
+#define SCRN_NBG1               1 /* Normal background */
+#define SCRN_NBG2               2 /* Normal background */
+#define SCRN_NBG3               3 /* Normal background */
+#define SCRN_RBG0               4 /* Rotational background */
+#define SCRN_RBG1               5 /* Rotational background */
+#define SCRN_EXBG               6 /* External input screen  */
 #define SCRN_COUNT              6
 
 #define SCRN_TYPE_INVALID       0

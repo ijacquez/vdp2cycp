@@ -15,50 +15,56 @@ extern const struct scrn_format *bg_formats[];
 
 /* Table representing number of VRAM accesses required for pattern name
  * data. */
-static const int8_t _timings_count_pnd[3][3] = {
+static const int8_t _timings_count_pnd[3][4] = {
         /* Invalid */
         {
-                -1,
-                -1,
-                -1,
+                -1,     /* Invalid */
+                -1,     /* Invalid */
+                -1,     /* Invalid */
         },
         /* PND 1-word */
         {
-                1,      /* No reduction */
-                2,      /* 1/2 reduction */
-                4       /* 1/4 reduction */
+                 1,     /* No reduction */
+                 2,     /* 1/2 reduction */
+                 4,     /* 1/4 reduction */
+                -1      /* Invalid */
         },
         /* PND 2-word */
         {
-                1,      /* No reduction */
-                2,      /* 1/2 reduction */
-                4       /* 1/4 reduction */
+                 1,     /* No reduction */
+                 2,     /* 1/2 reduction */
+                 4,     /* 1/4 reduction */
+                -1      /* Invalid */
         }
 };
 
 /* Table representing number of VRAM accesses required for character
  * pattern data. */
-static const int8_t _timings_count_cell_cpd[5][3] = {
+static const int8_t _timings_count_cell_cpd[5][4] = {
         /* Character color count: 16 (palette) */
         {
                  1,     /* No reduction */
                  2,     /* 1/2 reduction */
-                 4      /* 1/4 reduction */
+                 4,     /* 1/4 reduction */
+                -1      /* Invalid */
         },
         /* Character color count: 256 (palette) */
         {
                  2,     /* No reduction */
                  4,     /* 1/2 reduction */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         },
         /* Character color count: 2048 (palette)*/
         {
                  4,     /* No reduction */
                 -1,     /* 1/2 reduction (invalid) */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         },
         /* Character color count: 32,768 (RGB) */
         {
+                -1,     /* Invalid */
                 -1,     /* Invalid */
                 -1,     /* Invalid */
                 -1      /* Invalid */
@@ -67,42 +73,48 @@ static const int8_t _timings_count_cell_cpd[5][3] = {
         {
                 -1,     /* Invalid */
                 -1,     /* Invalid */
+                -1,     /* Invalid */
                 -1      /* Invalid */
         }
 };
 
 /* Table representing number of VRAM accesses required for character
  * pattern data. */
-static const int8_t _timings_count_bitmap_cpd[5][3] = {
+static const int8_t _timings_count_bitmap_cpd[5][4] = {
         /* Character color count: 16 (palette) */
         {
                  1,     /* No reduction */
                  2,     /* 1/2 reduction */
-                 4      /* 1/4 reduction */
+                 4,     /* 1/4 reduction */
+                -1      /* Invalid */
         },
         /* Character color count: 256 (palette) */
         {
                  2,     /* No reduction */
                  4,     /* 1/2 reduction */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         },
         /* Character color count: 2048 (palette)*/
         {
                  4,     /* No reduction */
                 -1,     /* 1/2 reduction (invalid) */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         },
         /* Character color count: 32,768 (RGB) */
         {
                  4,     /* No reduction */
                 -1,     /* 1/2 reduction (invalid) */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         },
         /* Character color count: 16,770,000 (RGB) */
         {
                  8,     /* No reduction */
                 -1,     /* 1/2 reduction (invalid) */
-                -1      /* 1/4 reduction (invalid) */
+                -1,     /* 1/4 reduction (invalid) */
+                -1      /* Invalid */
         }
 };
 
@@ -121,43 +133,43 @@ static const int8_t _timings_count_vcs[2] = {
  * timing, the range T0,T1,T2 and T4,T5,T6,T7 can be selected for
  * character pattern data.
  */
-static const uint8_t _timings_range_normal[8] = {
+static const uint32_t _timings_range_normal[8] = {
         /* T0 -> T0, T1, T2, T4, T5, T6, T7 */
-        0xF7,
+        0xFFFF0FFF,
         /* T1 -> T0, T1, T2, T3, T5, T6, T7 */
-        0xEF,
+        0xFFF0FFFF,
         /* T2 -> T0, T1, T2, T3, T6, T7 */
-        0xCF,
+        0xFF00FFFF,
         /* T3 -> T0, T1, T2, T3, T7 */
-        0x8F,
+        0xF000FFFF,
         /* T4 -> T0, T1, T2, T3 */
-        0x0F,
+        0x0000FFFF,
         /* T5 -> T1, T2, T3 */
-        0x0E,
+        0x0000FFF0,
         /* T6 -> T2, T3 */
-        0x0C,
+        0x0000FF00,
         /* T7 -> T3 */
-        0x08
+        0x0000F000
 };
 
 /* Table representing range of access timings for hi-res TV screen mode. */
-static const uint8_t _timings_range_hires[8] = {
+static const uint32_t _timings_range_hires[8] = {
         /* T0 -> T0, T1, T2 */
-        0x07,
+        0x00000FFF,
         /* T1 -> T1, T2, T3 */
-        0x0E,
+        0x0000FFF0,
         /* T2 -> T0, T2, T3 */
-        0x0D,
+        0x0000FF0F,
         /* T3 -> T0, T1, T3 */
-        0x0B,
+        0x0000F0FF,
         /* T4 -> Invalid */
-        0x00,
+        0x00000000,
         /* T5 -> Invalid */
-        0x00,
+        0x00000000,
         /* T6 -> Invaild */
-        0x00,
+        0x00000000,
         /* T7 -> Invalid */
-        0x00
+        0x00000000
 };
 
 /* Table representing range of access timings for vertical cell scrolling.
@@ -174,9 +186,11 @@ static const uint8_t _timings_range_vcs[2] = {
 
 static void state_init(struct state *state, const struct scrn_format **) __unused;
 
-static int pnd_bitmap_calculate(const struct scrn_format *, uint8_t *) __unused;
-static int pnd_bitmap_validate(const struct state *, uint8_t) __unused;
-static int pnd_bitmap_validate_all(const struct state *);
+static int32_t pnd_bitmap_calculate(const struct scrn_format *, uint8_t *) __unused;
+static int32_t pnd_bitmap_validate(uint8_t, uint8_t) __unused;
+static int32_t pnd_bitmap_validate_all(const struct state *) __unused;
+
+static int32_t scrn_plane_count_get(const struct scrn_format *) __unused;
 
 int
 main(int argc __unused, char *argv[] __unused)
@@ -202,11 +216,7 @@ main(int argc __unused, char *argv[] __unused)
         /* XXX: Place holder */
         state.ramctl = 0x0000;
 
-        if ((pnd_bitmap_validate_all(&state)) < 0) {
-                return -1;
-        }
-
-        int error;
+        int32_t error;
         error = vdp2cycp(&state);
         DEBUG_PRINTF("vdp2cycp: %i\n", error);
 
@@ -220,15 +230,20 @@ main(int argc __unused, char *argv[] __unused)
  * for the following cases:
  *
  *   - -1 STATE is NULL
- *   - -2 Insufficient number of vertical cell scroll access timings
- *   - -3 Insufficient number of pattern name data access timings
- *   - -4 Insufficient number of character pattern data access timings
+ *   - -2 Pattern name data is stored in an invalid bank
+ *   - -3 Insufficient number of vertical cell scroll access timings
+ *   - -4 Insufficient number of pattern name data access timings
+ *   - -5 Insufficient number of character pattern data access timings
  */
-int
+int32_t
 vdp2cycp(const struct state *state)
 {
         if (state == NULL) {
                 return -1;
+        }
+
+        if ((pnd_bitmap_validate_all(state)) < 0) {
+                return -2;
         }
 
         /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
@@ -236,7 +251,7 @@ vdp2cycp(const struct state *state)
         uint32_t scrn;
         for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
                 struct scrn_format *format;
-                format = state->formats[scrn];
+                format = &state->scroll_screens[scrn]->format;
 
                 if (format == NULL) {
                         continue;
@@ -251,7 +266,7 @@ vdp2cycp(const struct state *state)
                 if (format->sf_type != SCRN_TYPE_CELL) {
                         continue;
                 }
-                
+
                 const struct scrn_cell_format *cell_format;
                 cell_format = &format->sf_format.cell;
 
@@ -263,7 +278,7 @@ vdp2cycp(const struct state *state)
                         tvcs = _timings_count_vcs[format->sf_scroll_screen];
 
                         if (tvcs < 0) {
-                                return -2;
+                                return -3;
                         }
                 }
 
@@ -274,7 +289,7 @@ vdp2cycp(const struct state *state)
 
                 /* Invalid number of PND access timings */
                 if (tpnd < 0) {
-                        return -3;
+                        return -4;
                 }
 
                 /* Determine how many CPD access timings are needed (due
@@ -284,7 +299,7 @@ vdp2cycp(const struct state *state)
 
                 /* Invalid number of PND access timings */
                 if (tcpd < 0) {
-                        return -4;
+                        return -5;
                 }
 
                 DEBUG_PRINTF("--------------------------------------------------------------------------------\n");
@@ -330,41 +345,24 @@ state_init(struct state *state, const struct scrn_format **formats)
                 return;
         }
 
-        /*  */
-
-        state->formats[0] = &state->format_nbg0;
-        state->formats[1] = &state->format_nbg1;
-        state->formats[2] = &state->format_nbg2;
-        state->formats[3] = &state->format_nbg3;
-        state->formats[4] = &state->format_rbg0;
-        state->formats[5] = &state->format_rbg1;
+        state->scroll_screens[0] = &state->nbg0;
+        state->scroll_screens[1] = &state->nbg1;
+        state->scroll_screens[2] = &state->nbg2;
+        state->scroll_screens[3] = &state->nbg3;
+        state->scroll_screens[4] = &state->rbg0;
+        state->scroll_screens[5] = &state->rbg1;
 
         uint32_t i;
-        for (i = 0; i < SCRN_COUNT; i++) {
-                if (formats[i] == NULL) {
-                        break;
-                }
+        for (i = 0; (i < SCRN_COUNT) && (formats[i] != NULL); i++) {
+                uint8_t scrn;
+                scrn = formats[i]->sf_scroll_screen;
 
-                switch (formats[i]->sf_scroll_screen) {
-                case SCRN_NBG0:
-                        (void)memcpy(&state->format_nbg0, formats[i], sizeof(*formats[i]));
-                        break;
-                case SCRN_NBG1:
-                        (void)memcpy(&state->format_nbg1, formats[i], sizeof(*formats[i]));
-                        break;
-                case SCRN_NBG2:
-                        (void)memcpy(&state->format_nbg2, formats[i], sizeof(*formats[i]));
-                        break;
-                case SCRN_NBG3:
-                        (void)memcpy(&state->format_nbg3, formats[i], sizeof(*formats[i]));
-                        break;
-                case SCRN_RBG0:
-                        (void)memcpy(&state->format_rbg0, formats[i], sizeof(*formats[i]));
-                        break;
-                case SCRN_RBG1:
-                        (void)memcpy(&state->format_rbg1, formats[i], sizeof(*formats[i]));
-                        break;
-                }
+                struct scroll_screen *scroll_screen;
+                scroll_screen = state->scroll_screens[scrn];
+
+                (void)memcpy(&scroll_screen->format, formats[i], sizeof(*formats[i]));
+
+                pnd_bitmap_calculate(&scroll_screen->format, &scroll_screen->pnd_bitmap);
         }
 }
 
@@ -372,12 +370,11 @@ state_init(struct state *state, const struct scrn_format **formats)
  * Calculate an 8-bit bit-map PND_BITMAP of where pattern name data is
  * stored amongst the 4 banks.
  *
- * If succesful, 0 is returned. Otherwise, a negative value is return
+ * If succesful, 0 is returned. Otherwise, a negative value is returned
  * for the following cases:
  *
  *   - -1 PND_BITMAP is NULL
  *   - -2 FORMAT is NULL
- *   - -3 FORMAT is not a cell format
  */
 static int
 pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
@@ -395,7 +392,7 @@ pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
         }
 
         if (format->sf_type != SCRN_TYPE_CELL) {
-                return -3;
+                return 0;
         }
 
         if (!format->sf_enable) {
@@ -405,30 +402,21 @@ pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
         const struct scrn_cell_format *cell_format;
         cell_format = &format->sf_format.cell;
 
-        switch (format->sf_scroll_screen) {
-        case SCRN_NBG0:
-        case SCRN_NBG1:
-        case SCRN_NBG2:
-        case SCRN_NBG3: {
-                uint8_t bank;
-                uint32_t i;
+        int32_t plane_count;
+        plane_count = scrn_plane_count_get(format);
 
+        int32_t i;
+        for (i = 0; i < plane_count; i++) {
                 /* XXX: 4 or 8-Mbit? */
-                for (i = 0; i < 4; i++) {
-                        bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[i]);
-                        *pnd_bitmap |= BANK_BIT(bank);
+                uint8_t bank;
+                bank = VRAM_BANK_4MBIT(cell_format->scf_map.planes[i]);
 
-                        DEBUG_PRINTF("p: 0x%08X, %i, BANK_BIT(bank): 0x%02X\n",
-                            cell_format->scf_map.planes[i],
-                            bank,
-                            BANK_BIT(bank));
-                }
-        } break;
-        case SCRN_RBG1:
-        case SCRN_RBG0:
-                break;
-        default:
-                return -1;
+                *pnd_bitmap |= BANK_BIT(bank);
+
+                DEBUG_PRINTF("p: 0x%08X, %i, BANK_BIT(bank): 0x%02X\n",
+                    cell_format->scf_map.planes[i],
+                    bank,
+                    BANK_BIT(bank));
         }
 
         return 0;
@@ -440,14 +428,13 @@ pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
  * Validate 8-bit bit-map BITMAP, which represent where pattern name data
  * is stored amongst the 4 VRAM banks.
  *
- * If succesful, 0 is returned. Otherwise, a negative value is return
+ * If succesful, 0 is returned. Otherwise, a negative value is returned
  * for the following cases:
  *
- *   - -1 STATE is NULL
- *   - -2 Pattern name data is stored in an invalid bank
+ *   - -1 Pattern name data is stored in an invalid bank
  */
 static int
-pnd_bitmap_validate(const struct state *state, uint8_t pnd_bitmap)
+pnd_bitmap_validate(uint8_t bank_config, uint8_t pnd_bitmap)
 {
         /*-
          * Where the pattern name data can be placed:
@@ -595,22 +582,14 @@ pnd_bitmap_validate(const struct state *state, uint8_t pnd_bitmap)
                 }
         };
 
-        if (state == NULL) {
-                return -1;
-        }
-
         if ((pnd_bitmap & 0x0F) == 0x00) {
                 return 0;
         }
 
-        /* XXX: This needs to be moved elsewhere */
-        uint8_t bank_config;
-        bank_config = (state->ramctl & 0x0300) >> 8;
-
         uint32_t i;
         for (i = 0; ; i++) {
                 uint8_t pnd_bank_mask;
-                pnd_bank_mask = pnd_bank_masks[bank_config][i];
+                pnd_bank_mask = pnd_bank_masks[bank_config & 0x03][i];
 
                 if (pnd_bank_mask == 0x00) {
                         break;
@@ -625,10 +604,9 @@ pnd_bitmap_validate(const struct state *state, uint8_t pnd_bitmap)
 }
 
 /*-
- * Calculate and validate concatenated pattern name bit-map, of all
- * configured scroll screens.
+ * Validate the pattern name bit-map of all configured scroll screens.
  *
- * If succesful, 0 is returned. Otherwise, a negative value is return
+ * If succesful, 0 is returned. Otherwise, a negative value is returned
  * for the following cases:
  *
  *   - -1 STATE is NULL
@@ -641,37 +619,63 @@ pnd_bitmap_validate_all(const struct state *state)
                 return -1;
         }
 
-        uint8_t pnd_bitmap_all;
-        pnd_bitmap_all = 0x00;
+        uint8_t pnd_bitmap;
+        pnd_bitmap = 0x00;
 
         uint32_t scrn;
         for (scrn = 0; scrn < SCRN_COUNT; scrn++) {
-                const struct scrn_format *format;
-                format = state->formats[scrn];
+                struct scroll_screen *scroll_screen;
+                scroll_screen = state->scroll_screens[scrn];
 
-                if (format == NULL) {
-                        continue;
-                }
+                struct scrn_format *format;
+                format = &scroll_screen->format;
 
                 if (!format->sf_enable) {
                         continue;
                 }
 
-                if (format->sf_type != SCRN_TYPE_CELL) {
-                        continue;
-                }
-
-                uint8_t pnd_bitmap;
-
-                int ret;
-                if ((ret = pnd_bitmap_calculate(format, &pnd_bitmap)) < 0) {
-                        return ret;
-                }
-
-                pnd_bitmap_all |= pnd_bitmap;
+                pnd_bitmap |= scroll_screen->pnd_bitmap;
         }
 
-        DEBUG_PRINTF("pnd_bitmap_all: 0x%02X\n", pnd_bitmap_all);
+        DEBUG_PRINTF("pnd_bitmap_all: 0x%02X\n", pnd_bitmap);
 
-        return pnd_bitmap_validate(state, pnd_bitmap_all);
+        /* XXX: This needs to be moved elsewhere */
+        uint8_t bank_config;
+        bank_config = ((state->ramctl & 0x0300) >> 8) & 0x03;
+
+        return pnd_bitmap_validate(bank_config, pnd_bitmap);
+}
+
+/*-
+ * Return the number of planes available from the screen format FORMAT.
+ *
+ * If succesful, the number of planes is returned. Otherwise, a negative value is returned
+ * for the following cases:
+ *
+ *   - -1 FORMAT is NULL
+ *   - -2 FORMAT is not a cell type
+ */
+static int32_t
+scrn_plane_count_get(const struct scrn_format *format)
+{
+        if (format == NULL) {
+                return -1;
+        }
+
+        if (format->sf_type != SCRN_TYPE_CELL) {
+                return -2;
+        }
+
+        switch (format->sf_scroll_screen) {
+        case SCRN_NBG0:
+        case SCRN_NBG1:
+        case SCRN_NBG2:
+        case SCRN_NBG3:
+                return 4;
+        case SCRN_RBG0:
+        case SCRN_RBG1:
+                return 16;
+        }
+
+        return -1;
 }

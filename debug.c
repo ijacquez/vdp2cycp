@@ -142,7 +142,7 @@ debug_print_format(const struct scrn_format *format __unused)
                     "  scf_map.plane_b: 0x%08X (bank %i)\n"
                     "  scf_map.plane_c: 0x%08X (bank %i)\n"
                     "  scf_map.plane_d: 0x%08X (bank %i)\n",
-                    scroll_screen_names[log2_pow2(format->sf_scroll_screen)],
+                    scroll_screen_names[format->sf_scroll_screen],
                     format_names[format->sf_type],
                     cc_count_names[format->sf_cc_count],
                     pnd_size_names[cell_format->scf_pnd_size],
