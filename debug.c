@@ -74,8 +74,7 @@ debug_print_cycle_pattern(uint32_t pv)
 char *
 debug_print_format(const struct scrn_format *format __unused)
 {
-        static const char *format_names[] __unused = {
-                "[1;31mInvalid[m",
+        static const char *type_names[] __unused = {
                 "Cell",
                 "Bitmap",
                 NULL
@@ -86,8 +85,8 @@ debug_print_format(const struct scrn_format *format __unused)
                 "NBG1",
                 "NBG2",
                 "NBG3",
-                "[1;31mRGB0[m",
-                "[1;31mRGB1[m",
+                "[1;31mRBG0[m",
+                "[1;31mRBG1[m",
                 NULL
         };
 
@@ -132,23 +131,23 @@ debug_print_format(const struct scrn_format *format __unused)
                 (void)sprintf(output_buffer,
                     "\n"
                     "    scroll_screen: %s\n"
-                    "           format: %s\n"
+                    "             type: %s\n"
                     "         cc_count: %s\n"
+                    "        vcs_table: 0x%08X\n"
+                    "        reduction: %s\n"
                     "     scf_pnd_size: %s\n"
                     "     scf_cp_table: 0x%08X\n"
-                    "    scf_vcs_table: 0x%08X\n"
-                    "    scf_reduction: %s\n"
                     "  scf_map.plane_a: 0x%08X (bank %i)\n"
                     "  scf_map.plane_b: 0x%08X (bank %i)\n"
                     "  scf_map.plane_c: 0x%08X (bank %i)\n"
                     "  scf_map.plane_d: 0x%08X (bank %i)\n",
                     scroll_screen_names[format->sf_scroll_screen],
-                    format_names[format->sf_type],
+                    type_names[format->sf_type],
                     cc_count_names[format->sf_cc_count],
+                    format->sf_vcs_table,
+                    reduction_names[format->sf_reduction],
                     pnd_size_names[cell_format->scf_pnd_size],
                     cell_format->scf_cp_table,
-                    cell_format->scf_vcs_table,
-                    reduction_names[cell_format->scf_reduction],
                     cell_format->scf_map.plane_a,
                     VRAM_BANK_4MBIT(cell_format->scf_map.plane_a),
                     cell_format->scf_map.plane_b,
@@ -165,11 +164,15 @@ debug_print_format(const struct scrn_format *format __unused)
                 (void)sprintf(output_buffer,
                     "\n"
                     "    scroll_screen: %s\n"
-                    "           format: %s\n"
-                    "         cc_count: %s\n",
-                    scroll_screen_names[log2_pow2(format->sf_scroll_screen)],
-                    format_names[format->sf_type],
-                    cc_count_names[format->sf_cc_count]);
+                    "             type: %s\n"
+                    "         cc_count: %s\n"
+                    "        vcs_table: 0x%08X\n"
+                    "        reduction: %s\n",
+                    scroll_screen_names[format->sf_scroll_screen],
+                    type_names[format->sf_type],
+                    cc_count_names[format->sf_cc_count],
+                    format->sf_vcs_table,
+                    reduction_names[format->sf_reduction]);
         } break;
         }
 

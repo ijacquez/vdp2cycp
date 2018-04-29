@@ -19,12 +19,11 @@
 #define SCRN_NBG3               3 /* Normal background */
 #define SCRN_RBG0               4 /* Rotational background */
 #define SCRN_RBG1               5 /* Rotational background */
-#define SCRN_EXBG               6 /* External input screen  */
+#define SCRN_EXBG               7 /* External input screen  */
 #define SCRN_COUNT              6
 
-#define SCRN_TYPE_INVALID       0
-#define SCRN_TYPE_CELL          1
-#define SCRN_TYPE_BITMAP        2
+#define SCRN_TYPE_CELL          0
+#define SCRN_TYPE_BITMAP        1
 
 #define SCRN_REDUCTION_NONE     0 /* No reduction */
 #define SCRN_REDUCTION_HALF     1 /* 1/2 reduction */
@@ -65,8 +64,8 @@ struct scrn_bitmap_format {
                                          *   Mode 3: Swap via Rotation Parameter Window */
 };
 
-#ifdef NEW_EXPERIMENTAL_IMPL
-struct scrn_cell_format2 {
+#ifdef SCRN_CELL_FORMAT_TEST_IMPL
+struct scrn_cell_format_test_impl {
         struct {
                 unsigned int scf_character_size:1;
                 unsigned int scf_pnd_size:1;
@@ -82,7 +81,7 @@ struct scrn_cell_format2 {
 
         uint32_t scf_vcs_table;         /* Vertical cell scroll table lead address */
 };
-#endif /* NEW_EXPERIMENTAL_IMPL */
+#endif /* SCRN_CELL_FORMAT_TEST_IMPL */
 
 struct scrn_cell_format {
         uint8_t scf_character_size;     /* Character size: (1 * 1) or (2 * 2) cells */
@@ -94,13 +93,6 @@ struct scrn_cell_format {
 
         uint32_t scf_cp_table;          /* Character pattern table lead address */
         uint32_t scf_color_palette;     /* Color palette lead address */
-
-        uint32_t scf_vcs_table;         /* Vertical cell scroll table lead address */
-
-        uint8_t scf_reduction;          /* Background reduction
-                                         * 1
-                                         * 1/2 reduction
-                                         * 1/4 reduction */
 
         uint8_t scf_plane_size;         /* Plane size (1 * 1)
                                          * Plane size (2 * 1)
@@ -146,16 +138,16 @@ struct scrn_format {
         uint8_t sf_type;                /* Cell format type
                                          * Bitmap format type */
         uint8_t sf_cc_count;            /* Character color count */
-
-        bool sf_cpu_access;             /* CPU access during screen
-                                         * display interval is needed*/
+        uint32_t sf_vcs_table;          /* Vertical cell scroll table lead address */
+        uint8_t sf_reduction;           /* Background reduction
+                                         * 1
+                                         * 1/2 reduction
+                                         * 1/4 reduction */
 
         union {
                 struct scrn_cell_format cell;
                 struct scrn_bitmap_format bitmap;
         } sf_format;
-
-        /* void *sf_format; */
 };
 
 #define VRAM_CTL_CYCP_PNDR_NBG0         0x0 /* NBG0 pattern name data read */

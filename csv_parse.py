@@ -70,6 +70,8 @@ class SCRNFormat(object):
             self.scroll_screen = self._parse_scroll_screen(args[0])
             self.format = self._parse_type(args[1])
             self.cc_count = self._parse_cc_count(args[2])
+            self.vcs_table = self._parse_vcs_table(args[3])
+            self.reduction = self._parse_reduction(args[4])
         except IndexError:
             raise ValueError("Invalid arguments for SCRNFormat")
 
@@ -80,6 +82,8 @@ static const struct scrn_format _%s_format = {
         .sf_scroll_screen = %s,
         .sf_type = %s,
         .sf_cc_count = %s,
+        .sf_vcs_table = %s,
+        .sf_reduction = %s,
         .sf_format = {
                 %s
         }
@@ -87,6 +91,8 @@ static const struct scrn_format _%s_format = {
          self.scroll_screen,
          self.format,
          self.cc_count,
+         self.vcs_table,
+         self.reduction,
          self._format_str())
 
     @staticmethod
@@ -137,17 +143,21 @@ static const struct scrn_format _%s_format = {
     def _parse_cc_count(self, value):
         return self._parse_map(value, CCC)
 
+    def _parse_vcs_table(self, value):
+        return self._parse_address_range(value, VRAM_START, VRAM_END, 0x00000000)
+
+    def _parse_reduction(self, value):
+        return self._parse_map(value, REDUCTIONS)
+
 class SCRNCellFormat(SCRNFormat):
     def __init__(self, name, *args):
         super(SCRNCellFormat, self).__init__(name, *args)
         try:
-            self.character_size = self._parse_character_size(args[3])
-            self.pnd_size = self._parse_pnd_size(args[4])
-            self.cp_table = self._parse_cp_table(args[5])
-            self.color_palette = self._parse_color_palette(args[6])
-            self.auxiliary_mode = self._parse_auxiliary_mode(args[7])
-            self.vcs_table = self._parse_vcs_table(args[8])
-            self.reduction = self._parse_reduction(args[9])
+            self.character_size = self._parse_character_size(args[5])
+            self.pnd_size = self._parse_pnd_size(args[6])
+            self.cp_table = self._parse_cp_table(args[7])
+            self.color_palette = self._parse_color_palette(args[8])
+            self.auxiliary_mode = self._parse_auxiliary_mode(args[9])
             self.plane_size = self._parse_plane_size(args[10])
             self.plane_a = self._parse_plane(args[11])
             self.plane_b = self._parse_plane(args[12])
@@ -163,8 +173,6 @@ class SCRNCellFormat(SCRNFormat):
                         .scf_auxiliary_mode = %s,
                         .scf_cp_table = %s,
                         .scf_color_palette = %s,
-                        .scf_vcs_table = %s,
-                        .scf_reduction = %s,
                         .scf_plane_size = %s,
                         .scf_map.plane_a = %s,
                         .scf_map.plane_b = %s,
@@ -175,8 +183,6 @@ class SCRNCellFormat(SCRNFormat):
        self.auxiliary_mode,
        self.cp_table,
        self.color_palette,
-       self.vcs_table,
-       self.reduction,
        self.plane_size,
        self.plane_a,
        self.plane_b,
@@ -198,12 +204,6 @@ class SCRNCellFormat(SCRNFormat):
     def _parse_color_palette(self, value):
         return self._parse_address_range(value, CRAM_START, CRAM_END)
 
-    def _parse_vcs_table(self, value):
-        return self._parse_address_range(value, VRAM_START, VRAM_END, 0x00000000)
-
-    def _parse_reduction(self, value):
-        return self._parse_map(value, REDUCTIONS)
-
     def _parse_plane_size(self, value):
         return self._parse_map(value, PLANE_SIZES)
 
@@ -214,10 +214,10 @@ class SCRNBitmapFormat(SCRNFormat):
     def __init__(self, name, *args):
         super(SCRNBitmapFormat, self).__init__(name, *args)
         try:
-            self.width = self._parse_width(args[3])
-            self.height = self._parse_height(args[4])
-            self.bitmap_pattern = self._parse_bitmap_pattern(args[5])
-            self.color_palette = self._parse_color_palette(args[6])
+            self.width = self._parse_width(args[5])
+            self.height = self._parse_height(args[6])
+            self.bitmap_pattern = self._parse_bitmap_pattern(args[7])
+            self.color_palette = self._parse_color_palette(args[8])
         except IndexError:
             raise ValueError("Invalid arguments for SCRNBitmapFormat")
 

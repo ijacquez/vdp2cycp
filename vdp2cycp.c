@@ -40,81 +40,82 @@ static const int8_t _timings_count_pnd[3][4] = {
 
 /* Table representing number of VRAM accesses required for character
  * pattern data. */
-static const int8_t _timings_count_cell_cpd[5][4] = {
-        /* Character color count: 16 (palette) */
+static const int8_t _timings_count_cpd[2][5][4] = {
+        /* Cell */
         {
-                 1,     /* No reduction */
-                 2,     /* 1/2 reduction */
-                 4,     /* 1/4 reduction */
-                -1      /* Invalid */
+                /* Character color count: 16 (palette) */
+                {
+                        1,     /* No reduction */
+                        2,     /* 1/2 reduction */
+                        4,     /* 1/4 reduction */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 256 (palette) */
+                {
+                        2,     /* No reduction */
+                        4,     /* 1/2 reduction */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 2048 (palette)*/
+                {
+                        4,     /* No reduction */
+                        -1,     /* 1/2 reduction (invalid) */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 32,768 (RGB) */
+                {
+                        -1,     /* Invalid */
+                        -1,     /* Invalid */
+                        -1,     /* Invalid */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 16,770,000 (RGB) */
+                {
+                        -1,     /* Invalid */
+                        -1,     /* Invalid */
+                        -1,     /* Invalid */
+                        -1      /* Invalid */
+                }
         },
-        /* Character color count: 256 (palette) */
+        /* Bitmap */
         {
-                 2,     /* No reduction */
-                 4,     /* 1/2 reduction */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
-        },
-        /* Character color count: 2048 (palette)*/
-        {
-                 4,     /* No reduction */
-                -1,     /* 1/2 reduction (invalid) */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
-        },
-        /* Character color count: 32,768 (RGB) */
-        {
-                -1,     /* Invalid */
-                -1,     /* Invalid */
-                -1,     /* Invalid */
-                -1      /* Invalid */
-        },
-        /* Character color count: 16,770,000 (RGB) */
-        {
-                -1,     /* Invalid */
-                -1,     /* Invalid */
-                -1,     /* Invalid */
-                -1      /* Invalid */
-        }
-};
-
-/* Table representing number of VRAM accesses required for character
- * pattern data. */
-static const int8_t _timings_count_bitmap_cpd[5][4] = {
-        /* Character color count: 16 (palette) */
-        {
-                 1,     /* No reduction */
-                 2,     /* 1/2 reduction */
-                 4,     /* 1/4 reduction */
-                -1      /* Invalid */
-        },
-        /* Character color count: 256 (palette) */
-        {
-                 2,     /* No reduction */
-                 4,     /* 1/2 reduction */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
-        },
-        /* Character color count: 2048 (palette)*/
-        {
-                 4,     /* No reduction */
-                -1,     /* 1/2 reduction (invalid) */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
-        },
-        /* Character color count: 32,768 (RGB) */
-        {
-                 4,     /* No reduction */
-                -1,     /* 1/2 reduction (invalid) */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
-        },
-        /* Character color count: 16,770,000 (RGB) */
-        {
-                 8,     /* No reduction */
-                -1,     /* 1/2 reduction (invalid) */
-                -1,     /* 1/4 reduction (invalid) */
-                -1      /* Invalid */
+                /* Character color count: 16 (palette) */
+                {
+                        1,     /* No reduction */
+                        2,     /* 1/2 reduction */
+                        4,     /* 1/4 reduction */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 256 (palette) */
+                {
+                        2,     /* No reduction */
+                        4,     /* 1/2 reduction */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 2048 (palette)*/
+                {
+                        4,     /* No reduction */
+                        -1,     /* 1/2 reduction (invalid) */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 32,768 (RGB) */
+                {
+                        4,     /* No reduction */
+                        -1,     /* 1/2 reduction (invalid) */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                },
+                /* Character color count: 16,770,000 (RGB) */
+                {
+                        8,     /* No reduction */
+                        -1,     /* 1/2 reduction (invalid) */
+                        -1,     /* 1/4 reduction (invalid) */
+                        -1      /* Invalid */
+                }
         }
 };
 
@@ -177,18 +178,23 @@ static const uint32_t _timings_range_hires[8] = {
  * Note, access for NBG0 and NBG1 must be by the same bank, and NBG0
  * access must be selected first.
  */
-static const uint8_t _timings_range_vcs[2] = {
+static const uint32_t _timings_range_vcs[2] = {
         /* NBG0 */
-        0x03,
+        0x000000FF,
         /* NBG1 */
-        0x07
+        0xF0000FFF
 };
+
+static int32_t cycp_calculate_timings(const struct scrn_format *, uint8_t *, uint8_t *, uint8_t *);
 
 static void state_init(struct state *state, const struct scrn_format **) __unused;
 
 static int32_t pnd_bitmap_calculate(const struct scrn_format *, uint8_t *) __unused;
 static int32_t pnd_bitmap_validate(uint8_t, uint8_t) __unused;
 static int32_t pnd_bitmap_validate_all(const struct state *) __unused;
+
+static int32_t vcs_bitmap_calculate(const struct scrn_format *, uint8_t *) __unused;
+static int32_t vcs_bitmap_validate_all(const struct state *) __unused;
 
 static int32_t scrn_plane_count_get(const struct scrn_format *) __unused;
 
@@ -200,8 +206,7 @@ main(int argc __unused, char *argv[] __unused)
         DEBUG_PRINTF("sizeof(struct scrn_cell_format): %lu byte(s)\n", sizeof(struct scrn_cell_format));
         DEBUG_PRINTF("sizeof(struct scrn_bitmap_format): %lu byte(s)\n", sizeof(struct scrn_bitmap_format));
         DEBUG_PRINTF("sizeof(_timings_count_pnd): %lu byte(s)\n", sizeof(_timings_count_pnd));
-        DEBUG_PRINTF("sizeof(_timings_count_cell_cpd): %lu byte(s)\n", sizeof(_timings_count_cell_cpd));
-        DEBUG_PRINTF("sizeof(_timings_count_bitmap_cpd): %lu byte(s)\n", sizeof(_timings_count_bitmap_cpd));
+        DEBUG_PRINTF("sizeof(_timings_count_cpd): %lu byte(s)\n", sizeof(_timings_count_cpd));
         DEBUG_PRINTF("sizeof(_timings_count_vcs): %lu byte(s)\n", sizeof(_timings_count_vcs));
 
         DEBUG_PRINTF("sizeof(_timings_range_normal): %lu byte(s)\n", sizeof(_timings_range_normal));
@@ -230,10 +235,11 @@ main(int argc __unused, char *argv[] __unused)
  * for the following cases:
  *
  *   - -1 STATE is NULL
- *   - -2 Pattern name data is stored in an invalid bank
- *   - -3 Insufficient number of vertical cell scroll access timings
- *   - -4 Insufficient number of pattern name data access timings
- *   - -5 Insufficient number of character pattern data access timings
+ *   - -2 Vertical cell scroll is stored in an invalid bank
+ *   - -3 Pattern name data is stored in an invalid bank
+ *   - -4 Insufficient number of vertical cell scroll access timings
+ *   - -5 Insufficient number of pattern name data access timings
+ *   - -6 Insufficient number of character pattern data access timings
  */
 int32_t
 vdp2cycp(const struct state *state)
@@ -242,8 +248,12 @@ vdp2cycp(const struct state *state)
                 return -1;
         }
 
-        if ((pnd_bitmap_validate_all(state)) < 0) {
+        if ((vcs_bitmap_validate_all(state)) < 0) {
                 return -2;
+        }
+
+        if ((pnd_bitmap_validate_all(state)) < 0) {
+                return -3;
         }
 
         /* Go in order: NBG0, NBG1, NBG2, then NBG3 */
@@ -262,44 +272,13 @@ vdp2cycp(const struct state *state)
                         continue;
                 }
 
-                /* XXX: For now, only support the cell format */
-                if (format->sf_type != SCRN_TYPE_CELL) {
-                        continue;
-                }
+                uint8_t tvcs;
+                uint8_t tpnd;
+                uint8_t tcpd;
 
-                const struct scrn_cell_format *cell_format;
-                cell_format = &format->sf_format.cell;
-
-                int8_t tvcs;
-                tvcs = 0;
-
-                /* Determine if vertical cell scroll is used */
-                if (VRAM_BANK_ADDRESS(cell_format->scf_vcs_table)) {
-                        tvcs = _timings_count_vcs[format->sf_scroll_screen];
-
-                        if (tvcs < 0) {
-                                return -3;
-                        }
-                }
-
-                /* Determine how many PND access timings are needed (due
-                 * to reduction) */
-                int8_t tpnd;
-                tpnd = _timings_count_pnd[cell_format->scf_pnd_size][cell_format->scf_reduction];
-
-                /* Invalid number of PND access timings */
-                if (tpnd < 0) {
-                        return -4;
-                }
-
-                /* Determine how many CPD access timings are needed (due
-                 * to reduction) and character color count */
-                int8_t tcpd;
-                tcpd = _timings_count_cell_cpd[format->sf_cc_count][cell_format->scf_reduction];
-
-                /* Invalid number of PND access timings */
-                if (tcpd < 0) {
-                        return -5;
+                int32_t ret;
+                if ((ret = cycp_calculate_timings(format, &tvcs, &tpnd, &tcpd)) < 0) {
+                        return ret;
                 }
 
                 DEBUG_PRINTF("--------------------------------------------------------------------------------\n");
@@ -325,6 +304,52 @@ vdp2cycp(const struct state *state)
 
         // XXX: Allocation function should take in a mask on the "constraint"
         // XXX: Allocation function should take which bank to allocate access timing on
+
+        return 0;
+}
+
+static int32_t
+cycp_calculate_timings(
+        const struct scrn_format *format,
+        uint8_t *tvcs,
+        uint8_t *tpnd,
+        uint8_t *tcpd)
+{
+        *tvcs = 0;
+        *tpnd = 0;
+        *tcpd = 0;
+
+        /* Determine if vertical cell scroll is used */
+        if (VRAM_BANK_ADDRESS(format->sf_vcs_table)) {
+                *tvcs = _timings_count_vcs[format->sf_scroll_screen];
+
+                if ((int8_t)*tvcs < 0) {
+                        return -4;
+                }
+        }
+
+        /* Determine how many PND access timings are needed (due
+         * to reduction) */
+        if (format->sf_type == SCRN_TYPE_CELL) {
+                const struct scrn_cell_format *cell_format;
+                cell_format = &format->sf_format.cell;
+
+                *tpnd = _timings_count_pnd[cell_format->scf_pnd_size][format->sf_reduction];
+
+                /* Invalid number of PND access timings */
+                if ((int8_t)*tpnd < 0) {
+                        return -5;
+                }
+        }
+
+        /* Determine how many CPD access timings are needed (due
+         * to reduction) and character color count */
+        *tcpd = _timings_count_cpd[format->sf_type][format->sf_cc_count][format->sf_reduction];
+
+        /* Invalid number of PND access timings */
+        if ((int8_t)*tcpd < 0) {
+                return -6;
+        }
 
         return 0;
 }
@@ -362,6 +387,7 @@ state_init(struct state *state, const struct scrn_format **formats)
 
                 (void)memcpy(&scroll_screen->format, formats[i], sizeof(*formats[i]));
 
+                vcs_bitmap_calculate(&scroll_screen->format, &scroll_screen->vcs_bitmap);
                 pnd_bitmap_calculate(&scroll_screen->format, &scroll_screen->pnd_bitmap);
         }
 }
@@ -433,7 +459,7 @@ pnd_bitmap_calculate(const struct scrn_format *format, uint8_t *pnd_bitmap)
  *
  *   - -1 Pattern name data is stored in an invalid bank
  */
-static int
+static int32_t
 pnd_bitmap_validate(uint8_t bank_config, uint8_t pnd_bitmap)
 {
         /*-
@@ -612,7 +638,7 @@ pnd_bitmap_validate(uint8_t bank_config, uint8_t pnd_bitmap)
  *   - -1 STATE is NULL
  *   - -2 Pattern name data is stored in an invalid bank
  */
-static int
+static int32_t
 pnd_bitmap_validate_all(const struct state *state)
 {
         if (state == NULL) {
@@ -644,6 +670,71 @@ pnd_bitmap_validate_all(const struct state *state)
         bank_config = ((state->ramctl & 0x0300) >> 8) & 0x03;
 
         return pnd_bitmap_validate(bank_config, pnd_bitmap);
+}
+
+/*-
+ * Calculate an 8-bit bit-map VCS_BITMAP of where vertical cell scroll
+ * data is stored amongst the 4 banks.
+ *
+ * If succesful, 0 is returned. Otherwise, a negative value is returned
+ * for the following cases:
+ *
+ *   - -1 VCS_BITMAP is NULL
+ *   - -2 FORMAT is NULL
+ */
+static int
+vcs_bitmap_calculate(const struct scrn_format *format, uint8_t *vcs_bitmap)
+{
+        if (vcs_bitmap == NULL) {
+                return -1;
+        }
+
+        *vcs_bitmap = 0x00;
+
+        if (format == NULL) {
+                return -2;
+        }
+
+        if (format->sf_type != SCRN_TYPE_CELL) {
+                return 0;
+        }
+
+        if (!format->sf_enable) {
+                return 0;
+        }
+
+        *vcs_bitmap = VRAM_BANK_4MBIT(format->sf_vcs_table);
+
+        return 0;
+}
+
+/*-
+ * Validate the vertical cell scroll bit-map of NBG0 and NBG1.
+ *
+ * If succesful, 0 is returned. Otherwise, a negative value is returned
+ * for the following cases:
+ *
+ *   - -1 STATE is NULL
+ *   - -2 Vertical cell scroll data is stored in an invalid bank
+ */
+static int32_t
+vcs_bitmap_validate_all(const struct state *state)
+{
+        if (state == NULL) {
+                return -1;
+        }
+
+        const uint8_t *vcs_bitmap_nbg0;
+        vcs_bitmap_nbg0 = &state->nbg0.vcs_bitmap;
+
+        const uint8_t *vcs_bitmap_nbg1;
+        vcs_bitmap_nbg1 = &state->nbg1.vcs_bitmap;
+
+        if ((*vcs_bitmap_nbg0 == 0x00) && (*vcs_bitmap_nbg1 == 0x00)) {
+                return 0;
+        }
+
+        return ((*vcs_bitmap_nbg0 & *vcs_bitmap_nbg1) != 0x00) ? 0 : -2;
 }
 
 /*-

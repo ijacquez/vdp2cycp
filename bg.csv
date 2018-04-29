@@ -1,4 +1,4 @@
-Scroll screen,Format,Character color count,Character size (width),      Pattern name data size (height) ,Character pattern table,Color palette,Auxiliary mode         ,Vertical cell scroll,Reduction,Plane size,Plane A,   Plane B,   Plane C,   Plane D
-NBG2,cell,16,1x1,1,0x25E00000,0x25F00000,0,0x00000000,1/4,1x1,0x25E00000,0x25E00000,0x25E00000,0x25E00000
-NBG3,cell,16,1x1,1,0x25E00000,0x25F00000,0,0x00000000,1/4,1x1,0x25E00000,0x25E00000,0x25E00000,0x25E00000
-NBG1,bitmap,16,512,256,0x25E00000,0x25F00000,,,,,,,,
+Scroll screen,Format,Character color count,Vertical cell scroll 02,Reduction,Character size (width),Pattern name data size (height),Character pattern table,Color palette,Auxiliary mode,Plane size,Plane A,Plane B,Plane C,Plane D
+NBG2,cell,16,0x00000000,1/4,1x1,1,0x25E00000,0x25F00000,0,1x1,0x25E00000,0x25E00000,0x25E00000,0x25E00000
+NBG3,cell,16,0x00000000,1/4,1x1,1,0x25E00000,0x25F00000,0,1x1,0x25E00000,0x25E00000,0x25E00000,0x25E00000
+NBG1,bitmap,16,0x00000000,1/4,512,256,0x25E00000,0x25F00000,,,,,,

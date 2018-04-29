@@ -20,6 +20,7 @@ struct state {
         struct scroll_screen {
                 struct scrn_format format;
                 uint8_t pnd_bitmap;
+                uint8_t vcs_bitmap;
         };
 
         struct scroll_screen nbg0;
